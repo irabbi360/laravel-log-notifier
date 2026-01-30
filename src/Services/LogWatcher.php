@@ -60,7 +60,8 @@ class LogWatcher
 
         // If path is a directory, scan for all .log files
         if (File::isDirectory($logPath)) {
-            $files = File::glob($logPath . '/*.log');
+            $files = File::glob($logPath.'/*.log');
+
             return $files ?: [];
         }
 
@@ -133,7 +134,7 @@ class LogWatcher
     /**
      * Get the last read position for a log file.
      */
-    protected function getLastPosition(string $logFile = null): int
+    protected function getLastPosition(?string $logFile = null): int
     {
         $logFile = $logFile ?? $this->logPath;
         $key = $this->getCacheKey($logFile);
@@ -144,7 +145,7 @@ class LogWatcher
     /**
      * Save the current position for a log file.
      */
-    protected function saveLastPosition(int $position, string $logFile = null): void
+    protected function saveLastPosition(int $position, ?string $logFile = null): void
     {
         $logFile = $logFile ?? $this->logPath;
         $key = $this->getCacheKey($logFile);
@@ -157,7 +158,7 @@ class LogWatcher
      */
     protected function getCacheKey(string $logFile): string
     {
-        return 'log_notifier_position_' . md5($logFile);
+        return 'log_notifier_position_'.md5($logFile);
     }
 
     /**

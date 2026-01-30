@@ -81,7 +81,7 @@ class ProcessNewLogEntry
         $errorMessage = preg_replace('/^\[.*?\]\s+/', '', $errorMessage);
 
         // Generate hash for deduplication
-        $hash = sha1($errorMessage . $file . $line);
+        $hash = sha1($errorMessage.$file.$line);
 
         return [
             'level' => $level,
