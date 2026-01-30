@@ -167,7 +167,7 @@ class DashboardController extends Controller
     public function recent(Request $request)
     {
         $since = $request->get('since');
-        
+
         $query = \Irabbi360\LaravelLogNotifier\Models\LogError::query()
             ->where('is_resolved', false)
             ->orderBy('last_occurred_at', 'desc')
