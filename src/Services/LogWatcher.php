@@ -15,18 +15,14 @@ class LogWatcher
 
     protected ErrorRepository $repository;
 
-    protected PushNotifier $notifier;
-
     public function __construct(
         ErrorParser $parser,
-        ErrorRepository $repository,
-        PushNotifier $notifier
+        ErrorRepository $repository
     ) {
         $this->logPath = config('log-notifier.log_path', storage_path('logs/laravel.log'));
         $this->levels = config('log-notifier.levels', ['error', 'critical', 'alert', 'emergency']);
         $this->parser = $parser;
         $this->repository = $repository;
-        $this->notifier = $notifier;
     }
 
     /**
@@ -68,8 +64,8 @@ class LogWatcher
         foreach ($errors as $error) {
             $storedError = $this->repository->store($error);
 
-            if ($storedError && $this->shouldNotify($storedError)) {
-                $this->notifier->notify($storedError);
+            if ($storedError) {
+                // Toast notifications are handled client-side via polling
                 $processedErrors[] = $storedError;
             }
         }

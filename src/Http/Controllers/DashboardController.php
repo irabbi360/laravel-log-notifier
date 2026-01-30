@@ -160,4 +160,43 @@ class DashboardController extends Controller
 
         return response()->json($statistics);
     }
+
+    /**
+     * Get recent errors since a given timestamp (for toast notifications).
+     */
+    public function recent(Request $request)
+    {
+        $since = $request->get('since');
+        
+        $query = \Irabbi360\LaravelLogNotifier\Models\LogError::query()
+            ->where('is_resolved', false)
+            ->orderBy('last_occurred_at', 'desc')
+            ->limit(10);
+
+        if ($since) {
+            try {
+                $sinceDate = \Carbon\Carbon::parse($since);
+                $query->where('last_occurred_at', '>', $sinceDate);
+            } catch (\Exception $e) {
+                // Invalid date, ignore filter
+            }
+        }
+
+        $errors = $query->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at']);
+
+        return response()->json([
+            'errors' => $errors->map(function ($error) {
+                return [
+                    'id' => $error->id,
+                    'level' => $error->level,
+                    'message' => \Illuminate\Support\Str::limit($error->message, 200),
+                    'file' => $error->file,
+                    'line' => $error->line,
+                    'occurred_at' => $error->last_occurred_at->toIso8601String(),
+                ];
+            }),
+            'timestamp' => now()->toIso8601String(),
+            'count' => $errors->count(),
+        ]);
+    }
 }

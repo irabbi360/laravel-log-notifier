@@ -2,7 +2,6 @@
 
 use Illuminate\Support\Facades\Route;
 use Irabbi360\LaravelLogNotifier\Http\Controllers\DashboardController;
-use Irabbi360\LaravelLogNotifier\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,13 +28,7 @@ Route::prefix($dashboardRoute)
         Route::delete('/errors/{id}', [DashboardController::class, 'destroy'])->name('errors.destroy');
         Route::post('/errors/bulk', [DashboardController::class, 'bulkAction'])->name('errors.bulk');
 
-        // API routes
+        // API routes for toast polling
         Route::get('/api/statistics', [DashboardController::class, 'statistics'])->name('api.statistics');
-
-        // Notification routes
-        Route::post('/subscribe', [NotificationController::class, 'subscribe'])->name('subscribe');
-        Route::post('/unsubscribe', [NotificationController::class, 'unsubscribe'])->name('unsubscribe');
-        Route::post('/preferences', [NotificationController::class, 'updatePreferences'])->name('preferences');
-        Route::get('/vapid-public-key', [NotificationController::class, 'vapidPublicKey'])->name('vapid');
-        Route::post('/subscription-status', [NotificationController::class, 'status'])->name('subscription.status');
+        Route::get('/api/recent', [DashboardController::class, 'recent'])->name('api.recent');
     });

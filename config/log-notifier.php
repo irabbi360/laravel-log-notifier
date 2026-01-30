@@ -120,34 +120,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Queue Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Enable queueing for notification dispatching.
-    |
-    */
-    'queue' => [
-        'enabled' => env('LOG_NOTIFIER_QUEUE_ENABLED', false),
-        'connection' => env('LOG_NOTIFIER_QUEUE_CONNECTION', null),
-        'queue' => env('LOG_NOTIFIER_QUEUE_NAME', 'log-notifier'),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | VAPID Keys for Web Push
-    |--------------------------------------------------------------------------
-    |
-    | Generate VAPID keys using: php artisan log-notifier:generate-vapid
-    |
-    */
-    'vapid' => [
-        'subject' => env('LOG_NOTIFIER_VAPID_SUBJECT', env('APP_URL', 'http://localhost')),
-        'public_key' => env('LOG_NOTIFIER_VAPID_PUBLIC_KEY', ''),
-        'private_key' => env('LOG_NOTIFIER_VAPID_PRIVATE_KEY', ''),
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
     | Error Retention
     |--------------------------------------------------------------------------
     |
@@ -199,17 +171,6 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Database Connection
-    |--------------------------------------------------------------------------
-    |
-    | Specify a database connection for log notifier tables.
-    | Set to null to use the default connection.
-    |
-    */
-    'database_connection' => null,
-
-    /*
-    |--------------------------------------------------------------------------
     | Table Names
     |--------------------------------------------------------------------------
     |
@@ -218,7 +179,6 @@ return [
     */
     'tables' => [
         'errors' => 'log_notifier_errors',
-        'subscriptions' => 'log_notifier_subscriptions',
     ],
 
 ];

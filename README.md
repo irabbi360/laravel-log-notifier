@@ -5,9 +5,9 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/irabbi360/laravel-log-notifier/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/irabbi360/laravel-log-notifier/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/irabbi360/laravel-log-notifier.svg?style=flat-square)](https://packagist.org/packages/irabbi360/laravel-log-notifier)
 
-**Real-time Laravel error monitoring with Web Push Notifications**
+**Real-time Laravel error monitoring with Toast Notifications**
 
-Laravel Log Notifier is a developer-friendly Laravel package that monitors your application logs and sends **real-time web-based push notifications** whenever an error or critical issue is detected.
+Laravel Log Notifier is a developer-friendly Laravel package that monitors your application logs and sends **real-time in-app toast notifications** whenever an error or critical issue is detected.
 
 It helps you stay instantly informed about production issues without constantly checking log files or using expensive third-party services like Sentry or Bugsnag.
 
@@ -15,7 +15,8 @@ It helps you stay instantly informed about production issues without constantly 
 
 - 🔍 **Automatic Log Monitoring** - Scans Laravel log files for errors
 - 🚨 **Real-time Alerts** - Detects error, critical, alert & emergency logs
-- 🌐 **Web Push Notifications** - Browser-based notifications (no app required)
+- 🍞 **Toast Notifications** - In-app notifications that appear in the browser (no permissions needed)
+- 🔔 **Sound Alerts** - Optional beep sound for critical errors
 - 🖱️ **Click to View** - Navigate directly to error details from notifications
 - ⚙️ **Fully Configurable** - Customize via `config/log-notifier.php`
 - 🗂️ **Error Dashboard** - Beautiful UI to browse and manage errors
@@ -23,6 +24,7 @@ It helps you stay instantly informed about production issues without constantly 
 - 🔐 **Authentication** - Integrates with Laravel auth system
 - 🚀 **Queue Support** - Async notification dispatching
 - 🔒 **Security** - Masks sensitive data in logs
+- 💾 **Lightweight** - No external dependencies, no service workers
 
 ## 📦 Installation
 
@@ -49,12 +51,6 @@ Publish the config file:
 
 ```bash
 php artisan vendor:publish --tag="log-notifier-config"
-```
-
-Publish assets (service worker):
-
-```bash
-php artisan vendor:publish --tag="log-notifier-assets"
 ```
 
 ## ⚙️ Configuration
@@ -84,31 +80,10 @@ return [
     // Middleware for dashboard
     'middleware' => ['web'],
     'auth_middleware' => ['auth'],
-
-    // VAPID keys for Web Push
-    'vapid' => [
-        'public_key' => env('LOG_NOTIFIER_VAPID_PUBLIC_KEY'),
-        'private_key' => env('LOG_NOTIFIER_VAPID_PRIVATE_KEY'),
-    ],
 ];
 ```
 
-## 🔑 Generate VAPID Keys
-
-Web Push requires VAPID keys for authentication. Generate them with:
-
-```bash
-php artisan log-notifier:generate-vapid
-```
-
-Add the keys to your `.env` file:
-
-```env
-LOG_NOTIFIER_VAPID_PUBLIC_KEY=your-public-key
-LOG_NOTIFIER_VAPID_PRIVATE_KEY=your-private-key
-```
-
-## 🚀 Usage
+## � Usage
 
 ### Dashboard
 
@@ -117,6 +92,15 @@ Access the error dashboard at:
 ```
 https://your-app.com/log-notifier
 ```
+
+### Enable Toast Notifications
+
+1. Visit the dashboard
+2. Click the bell icon (🔔) in the top-right navbar
+3. Notifications will appear in real-time as errors occur
+4. Click any notification to jump to error details
+
+No browser permissions needed! Settings are saved in localStorage.
 
 ### Watch for Errors
 
@@ -142,12 +126,6 @@ Or in Laravel 11+ `routes/console.php`:
 
 ```php
 Schedule::command('log-notifier:watch --once')->everyMinute();
-```
-
-### Send Test Notification
-
-```bash
-php artisan log-notifier:test
 ```
 
 ### Clear Old Errors
@@ -176,9 +154,6 @@ $stats = LaravelLogNotifier::getStatistics(7); // Last 7 days
 
 // Resolve an error
 LaravelLogNotifier::resolve($errorId, auth()->id(), 'Fixed in commit abc123');
-
-// Send test notification
-LaravelLogNotifier::sendTestNotification();
 ```
 
 ## 🎨 Dashboard Features
@@ -188,19 +163,26 @@ LaravelLogNotifier::sendTestNotification();
 - **Error Details** - View full message, stack trace, context
 - **Bulk Actions** - Resolve or delete multiple errors
 - **Statistics** - Error counts by level and time period
-- **Push Subscription** - Enable/disable browser notifications
+- **Toast Notifications** - Real-time in-app error alerts
 
-## 📱 Web Push Notifications
+## 🍞 Toast Notifications
+
+### How It Works
 
 1. Visit the dashboard
-2. Click "Enable Notifications" button
-3. Accept the browser permission prompt
-4. You'll receive notifications when errors occur
+2. Click the bell icon (🔔) in the navbar
+3. Toasts appear in the top-right corner when errors occur
+4. Click any toast to navigate to error details
+5. Critical errors play a sound notification
 
-### Notification Actions
+### Notification Features
 
-- **View Details** - Opens error in dashboard
-- **Mark Resolved** - Resolves error directly
+- ✅ **No Permissions Required** - Works immediately
+- 🔔 **Sound Alerts** - Optional beep for critical errors
+- 💾 **Persistent Settings** - Remembers your preference
+- ⚡ **Real-time Polling** - Checks every 10 seconds
+- 🎯 **Color-Coded** - Visual indication by error level
+- 📍 **Always Visible** - Fixed position in top-right
 
 ## 🔧 Available Commands
 
@@ -208,8 +190,6 @@ LaravelLogNotifier::sendTestNotification();
 |---------|-------------|
 | `log-notifier:watch` | Watch logs for errors |
 | `log-notifier:clear` | Clear stored errors |
-| `log-notifier:test` | Send test notification |
-| `log-notifier:generate-vapid` | Generate VAPID keys |
 
 ## 🏗️ Architecture
 
@@ -222,9 +202,9 @@ ErrorParser (Extracts error data)
      ↓
 ErrorRepository (Stores/deduplicates)
      ↓
-PushNotifier (Sends notifications)
+Browser Polling
      ↓
-Service Worker → Browser Notification
+Toast Notification
      ↓
 Click → Error Dashboard
 ```
@@ -233,7 +213,6 @@ Click → Error Dashboard
 
 - **Sensitive Data Masking** - Passwords, API keys are automatically redacted
 - **Dashboard Authentication** - Protected by your auth middleware
-- **VAPID Authentication** - Secure push notification delivery
 - **Rate Limiting** - Prevents notification flooding
 
 ## 🧪 Testing

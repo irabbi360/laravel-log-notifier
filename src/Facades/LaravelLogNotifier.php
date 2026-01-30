@@ -14,11 +14,9 @@ use Illuminate\Support\Facades\Facade;
  * @method static bool delete(int $id)
  * @method static int clearOldErrors()
  * @method static int clearAll()
- * @method static int sendTestNotification()
  * @method static void resetPosition()
  * @method static \Irabbi360\LaravelLogNotifier\Services\LogWatcher watcher()
  * @method static \Irabbi360\LaravelLogNotifier\Services\ErrorRepository repository()
- * @method static \Irabbi360\LaravelLogNotifier\Services\PushNotifier notifier()
  *
  * @see \Irabbi360\LaravelLogNotifier\LaravelLogNotifier
  */

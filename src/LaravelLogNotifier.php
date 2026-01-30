@@ -5,7 +5,6 @@ namespace Irabbi360\LaravelLogNotifier;
 use Irabbi360\LaravelLogNotifier\Models\LogError;
 use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
 use Irabbi360\LaravelLogNotifier\Services\LogWatcher;
-use Irabbi360\LaravelLogNotifier\Services\PushNotifier;
 
 class LaravelLogNotifier
 {
@@ -13,16 +12,12 @@ class LaravelLogNotifier
 
     protected ErrorRepository $repository;
 
-    protected PushNotifier $notifier;
-
     public function __construct(
         LogWatcher $watcher,
-        ErrorRepository $repository,
-        PushNotifier $notifier
+        ErrorRepository $repository
     ) {
         $this->watcher = $watcher;
         $this->repository = $repository;
-        $this->notifier = $notifier;
     }
 
     /**
@@ -98,14 +93,6 @@ class LaravelLogNotifier
     }
 
     /**
-     * Send a test notification.
-     */
-    public function sendTestNotification(): int
-    {
-        return $this->notifier->sendTestNotification();
-    }
-
-    /**
      * Reset the log position tracker.
      */
     public function resetPosition(): void
@@ -127,13 +114,5 @@ class LaravelLogNotifier
     public function repository(): ErrorRepository
     {
         return $this->repository;
-    }
-
-    /**
-     * Get the push notifier instance.
-     */
-    public function notifier(): PushNotifier
-    {
-        return $this->notifier;
     }
 }
