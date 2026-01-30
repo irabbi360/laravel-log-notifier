@@ -46,7 +46,7 @@ class ProcessNewLogEntry
             if ($errorData) {
                 // Store the error in database
                 $this->repository->store($errorData);
-                
+
                 // Debug logging
                 if (config('log-notifier.debug', false)) {
                     \Illuminate\Support\Facades\Log::info('[Log Notifier] Error captured', [
