@@ -84,7 +84,27 @@ return [
 ```
 
 ## � Usage
+### Real-Time Error Detection
 
+The package automatically captures errors in **three ways**:
+
+1. **Real-Time Event Listener** ⚡ (Default & Automatic)
+   - Fires immediately when an error is logged
+   - No configuration needed
+   - Works in CLI and web requests
+
+2. **Scheduled Log Watcher** 📅 (Optional)
+   - Add to `app/Console/Kernel.php`:
+   ```php
+   $schedule->command('log-notifier:watch')->everyMinute();
+   ```
+   - Scans log file at regular intervals
+   - Good for backup detection
+
+3. **Manual Command** 🖥️
+   ```bash
+   php artisan log-notifier:watch --once
+   ```
 ### Dashboard
 
 Access the error dashboard at:

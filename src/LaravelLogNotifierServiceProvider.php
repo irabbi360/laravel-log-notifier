@@ -2,8 +2,10 @@
 
 namespace Irabbi360\LaravelLogNotifier;
 
+use Illuminate\Log\Events\LogWritten;
 use Irabbi360\LaravelLogNotifier\Commands\ClearErrorsCommand;
 use Irabbi360\LaravelLogNotifier\Commands\WatchLogsCommand;
+use Irabbi360\LaravelLogNotifier\Listeners\ProcessNewLogEntry;
 use Irabbi360\LaravelLogNotifier\Services\ErrorParser;
 use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
 use Irabbi360\LaravelLogNotifier\Services\LogWatcher;
@@ -67,5 +69,16 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
                 $app->make(ErrorRepository::class)
             );
         });
+    }
+
+    public function packageBooted(): void
+    {
+        // Register event listener for real-time log processing
+        if (config('log-notifier.enabled', true) && config('log-notifier.use_event_listener', true)) {
+            $this->app['events']->listen(
+                LogWritten::class,
+                ProcessNewLogEntry::class
+            );
+        }
     }
 }

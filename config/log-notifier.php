@@ -41,6 +41,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Real-Time Event Listener
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, errors are captured in real-time as they're logged
+    | via Laravel's LogWritten event. This is the fastest way to detect errors.
+    |
+    | Disable this if you want to rely only on the log watcher command/scheduler.
+    |
+    */
+    'use_event_listener' => env('LOG_NOTIFIER_USE_EVENT_LISTENER', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Check Interval
     |--------------------------------------------------------------------------
     |
