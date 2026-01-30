@@ -34,7 +34,7 @@ class ErrorParser
 
         foreach ($entries as $entry) {
             $parsed = $this->parseEntry($entry, $levels);
-            
+
             if ($parsed) {
                 $errors[] = $parsed;
             }
@@ -50,8 +50,8 @@ class ErrorParser
     {
         // Split by date pattern at the start of each entry
         $entries = preg_split('/(?=\[\d{4}-\d{2}-\d{2}[T ])/', $content, -1, PREG_SPLIT_NO_EMPTY);
-        
-        return array_filter($entries, fn($entry) => !empty(trim($entry)));
+
+        return array_filter($entries, fn ($entry) => ! empty(trim($entry)));
     }
 
     /**
@@ -61,15 +61,15 @@ class ErrorParser
     {
         // Match the basic log format
         $pattern = '/^\[(?<datetime>\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[+-]\d{2}:?\d{2})?)\]\s+(?<environment>\w+)\.(?<level>\w+):\s+(?<message>.+)$/s';
-        
-        if (!preg_match($pattern, trim($entry), $matches)) {
+
+        if (! preg_match($pattern, trim($entry), $matches)) {
             return null;
         }
 
         $level = strtoupper($matches['level']);
-        
+
         // Only process specified levels
-        if (!in_array($level, $levels)) {
+        if (! in_array($level, $levels)) {
             return null;
         }
 
@@ -83,7 +83,7 @@ class ErrorParser
         if (preg_match($this->stackTracePattern, $message, $traceMatch)) {
             $trace = trim($traceMatch[1]);
             $message = trim(preg_replace($this->stackTracePattern, '', $message));
-            
+
             // Extract file and line from first stack frame
             if (preg_match($this->fileLinePattern, $trace, $fileMatch)) {
                 $file = $fileMatch['file'];
@@ -141,7 +141,7 @@ class ErrorParser
     {
         // Remove excessive whitespace
         $message = preg_replace('/\s+/', ' ', $message);
-        
+
         // Trim and limit length
         return trim(substr($message, 0, 10000));
     }

@@ -3,7 +3,6 @@
 namespace Irabbi360\LaravelLogNotifier\Services;
 
 use Irabbi360\LaravelLogNotifier\Models\LogError;
-use Carbon\Carbon;
 
 class ErrorRepository
 {
@@ -17,9 +16,10 @@ class ErrorRepository
         // Check for deduplication
         if (config('log-notifier.deduplicate', true)) {
             $existing = $this->findDuplicate($hash);
-            
+
             if ($existing) {
                 $existing->incrementOccurrence();
+
                 return $existing;
             }
         }
@@ -76,7 +76,7 @@ class ErrorRepository
      */
     protected function captureRequestData(): ?array
     {
-        if (!app()->runningInConsole() && request()) {
+        if (! app()->runningInConsole() && request()) {
             return [
                 'url' => request()->fullUrl(),
                 'method' => request()->method(),
@@ -96,11 +96,11 @@ class ErrorRepository
     {
         $query = LogError::query();
 
-        if (!empty($filters['level'])) {
+        if (! empty($filters['level'])) {
             $query->level($filters['level']);
         }
 
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $query->search($filters['search']);
         }
 
@@ -108,7 +108,7 @@ class ErrorRepository
             $filters['is_resolved'] ? $query->resolved() : $query->unresolved();
         }
 
-        if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
+        if (! empty($filters['start_date']) && ! empty($filters['end_date'])) {
             $query->between($filters['start_date'], $filters['end_date']);
         }
 
@@ -154,8 +154,8 @@ class ErrorRepository
     public function resolve(int $id, ?int $userId = null, ?string $note = null): bool
     {
         $error = $this->find($id);
-        
-        if (!$error) {
+
+        if (! $error) {
             return false;
         }
 
@@ -168,8 +168,8 @@ class ErrorRepository
     public function unresolve(int $id): bool
     {
         $error = $this->find($id);
-        
-        if (!$error) {
+
+        if (! $error) {
             return false;
         }
 
@@ -190,7 +190,7 @@ class ErrorRepository
     public function clearOldErrors(): int
     {
         $retentionDays = config('log-notifier.retention_days', 30);
-        
+
         if ($retentionDays <= 0) {
             return 0;
         }

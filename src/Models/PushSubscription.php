@@ -2,9 +2,9 @@
 
 namespace Irabbi360\LaravelLogNotifier\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 
 class PushSubscription extends Model
 {
@@ -55,7 +55,7 @@ class PushSubscription extends Model
     {
         return $query->where(function ($q) use ($level) {
             $q->whereNull('subscribed_levels')
-              ->orWhereJsonContains('subscribed_levels', $level);
+                ->orWhereJsonContains('subscribed_levels', $level);
         });
     }
 

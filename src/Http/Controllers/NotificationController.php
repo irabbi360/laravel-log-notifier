@@ -61,7 +61,7 @@ class NotificationController extends Controller
 
         $subscription = PushSubscription::where('endpoint', $request->endpoint)->first();
 
-        if (!$subscription) {
+        if (! $subscription) {
             return response()->json([
                 'success' => false,
                 'message' => 'Subscription not found',
@@ -97,7 +97,7 @@ class NotificationController extends Controller
 
         $subscription = PushSubscription::where('endpoint', $request->endpoint)->first();
 
-        if (!$subscription) {
+        if (! $subscription) {
             return response()->json([
                 'subscribed' => false,
             ]);

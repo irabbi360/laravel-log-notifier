@@ -3,8 +3,8 @@
 namespace Irabbi360\LaravelLogNotifier\Commands;
 
 use Illuminate\Console\Command;
-use Irabbi360\LaravelLogNotifier\Services\PushNotifier;
 use Irabbi360\LaravelLogNotifier\Models\PushSubscription;
+use Irabbi360\LaravelLogNotifier\Services\PushNotifier;
 
 class TestNotificationCommand extends Command
 {
@@ -18,7 +18,8 @@ class TestNotificationCommand extends Command
 
         if ($subscriptionCount === 0) {
             $this->warn('No active push subscriptions found.');
-            $this->line('Visit the dashboard to subscribe: ' . url(config('log-notifier.dashboard_route', '/log-notifier')));
+            $this->line('Visit the dashboard to subscribe: '.url(config('log-notifier.dashboard_route', '/log-notifier')));
+
             return self::SUCCESS;
         }
 

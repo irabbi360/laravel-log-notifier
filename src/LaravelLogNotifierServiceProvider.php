@@ -2,17 +2,17 @@
 
 namespace Irabbi360\LaravelLogNotifier;
 
-use Spatie\LaravelPackageTools\Package;
-use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Spatie\LaravelPackageTools\Commands\InstallCommand;
-use Irabbi360\LaravelLogNotifier\Commands\WatchLogsCommand;
 use Irabbi360\LaravelLogNotifier\Commands\ClearErrorsCommand;
-use Irabbi360\LaravelLogNotifier\Commands\TestNotificationCommand;
 use Irabbi360\LaravelLogNotifier\Commands\GenerateVapidKeysCommand;
-use Irabbi360\LaravelLogNotifier\Services\LogWatcher;
+use Irabbi360\LaravelLogNotifier\Commands\TestNotificationCommand;
+use Irabbi360\LaravelLogNotifier\Commands\WatchLogsCommand;
 use Irabbi360\LaravelLogNotifier\Services\ErrorParser;
 use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
+use Irabbi360\LaravelLogNotifier\Services\LogWatcher;
 use Irabbi360\LaravelLogNotifier\Services\PushNotifier;
+use Spatie\LaravelPackageTools\Commands\InstallCommand;
+use Spatie\LaravelPackageTools\Package;
+use Spatie\LaravelPackageTools\PackageServiceProvider;
 
 class LaravelLogNotifierServiceProvider extends PackageServiceProvider
 {
@@ -54,15 +54,15 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
     {
         // Register services as singletons
         $this->app->singleton(ErrorParser::class, function ($app) {
-            return new ErrorParser();
+            return new ErrorParser;
         });
 
         $this->app->singleton(ErrorRepository::class, function ($app) {
-            return new ErrorRepository();
+            return new ErrorRepository;
         });
 
         $this->app->singleton(PushNotifier::class, function ($app) {
-            return new PushNotifier();
+            return new PushNotifier;
         });
 
         $this->app->singleton(LogWatcher::class, function ($app) {
@@ -88,7 +88,7 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
         // Publish service worker to public directory
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__ . '/../resources/assets/log-notifier-sw.js' => public_path('log-notifier-sw.js'),
+                __DIR__.'/../resources/assets/log-notifier-sw.js' => public_path('log-notifier-sw.js'),
             ], 'log-notifier-assets');
         }
     }

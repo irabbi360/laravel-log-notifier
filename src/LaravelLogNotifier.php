@@ -2,15 +2,17 @@
 
 namespace Irabbi360\LaravelLogNotifier;
 
-use Irabbi360\LaravelLogNotifier\Services\LogWatcher;
-use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
-use Irabbi360\LaravelLogNotifier\Services\PushNotifier;
 use Irabbi360\LaravelLogNotifier\Models\LogError;
+use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
+use Irabbi360\LaravelLogNotifier\Services\LogWatcher;
+use Irabbi360\LaravelLogNotifier\Services\PushNotifier;
 
 class LaravelLogNotifier
 {
     protected LogWatcher $watcher;
+
     protected ErrorRepository $repository;
+
     protected PushNotifier $notifier;
 
     public function __construct(

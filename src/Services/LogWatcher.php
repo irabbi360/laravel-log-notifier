@@ -2,15 +2,19 @@
 
 namespace Irabbi360\LaravelLogNotifier\Services;
 
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 
 class LogWatcher
 {
     protected string $logPath;
+
     protected array $levels;
+
     protected ErrorParser $parser;
+
     protected ErrorRepository $repository;
+
     protected PushNotifier $notifier;
 
     public function __construct(
@@ -30,11 +34,11 @@ class LogWatcher
      */
     public function watch(): array
     {
-        if (!config('log-notifier.enabled', true)) {
+        if (! config('log-notifier.enabled', true)) {
             return [];
         }
 
-        if (!File::exists($this->logPath)) {
+        if (! File::exists($this->logPath)) {
             return [];
         }
 
@@ -63,7 +67,7 @@ class LogWatcher
 
         foreach ($errors as $error) {
             $storedError = $this->repository->store($error);
-            
+
             if ($storedError && $this->shouldNotify($storedError)) {
                 $this->notifier->notify($storedError);
                 $processedErrors[] = $storedError;
@@ -79,8 +83,8 @@ class LogWatcher
     protected function readNewContent(int $start, int $end): string
     {
         $handle = fopen($this->logPath, 'r');
-        
-        if (!$handle) {
+
+        if (! $handle) {
             return '';
         }
 
@@ -112,7 +116,7 @@ class LogWatcher
      */
     protected function getCacheKey(): string
     {
-        return 'log_notifier_position_' . md5($this->logPath);
+        return 'log_notifier_position_'.md5($this->logPath);
     }
 
     /**
@@ -132,14 +136,14 @@ class LogWatcher
         if (config('log-notifier.rate_limit.enabled', true)) {
             $maxNotifications = config('log-notifier.rate_limit.max_notifications', 10);
             $perMinutes = config('log-notifier.rate_limit.per_minutes', 5);
-            
+
             $key = 'log_notifier_rate_limit';
             $count = Cache::get($key, 0);
-            
+
             if ($count >= $maxNotifications) {
                 return false;
             }
-            
+
             Cache::put($key, $count + 1, now()->addMinutes($perMinutes));
         }
 
@@ -153,6 +157,7 @@ class LogWatcher
     public function setLogPath(string $path): self
     {
         $this->logPath = $path;
+
         return $this;
     }
 
@@ -162,6 +167,7 @@ class LogWatcher
     public function setLevels(array $levels): self
     {
         $this->levels = $levels;
+
         return $this;
     }
 }

@@ -2,11 +2,11 @@
 
 namespace Irabbi360\LaravelLogNotifier\Services;
 
-use Irabbi360\LaravelLogNotifier\Models\LogError;
-use Irabbi360\LaravelLogNotifier\Models\PushSubscription;
-use Irabbi360\LaravelLogNotifier\Jobs\SendPushNotificationJob;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Irabbi360\LaravelLogNotifier\Jobs\SendPushNotificationJob;
+use Irabbi360\LaravelLogNotifier\Models\LogError;
+use Irabbi360\LaravelLogNotifier\Models\PushSubscription;
 
 class PushNotifier
 {
@@ -15,7 +15,7 @@ class PushNotifier
      */
     public function notify(LogError $error): void
     {
-        if (!config('log-notifier.enabled', true)) {
+        if (! config('log-notifier.enabled', true)) {
             return;
         }
 
@@ -55,11 +55,11 @@ class PushNotifier
             'badge' => $config['badge'] ?? '/vendor/log-notifier/badge.png',
             'vibrate' => $config['vibrate'] ?? [100, 50, 100],
             'requireInteraction' => $config['require_interaction'] ?? true,
-            'tag' => 'log-error-' . $error->id,
+            'tag' => 'log-error-'.$error->id,
             'data' => [
                 'id' => $error->id,
                 'level' => $error->level,
-                'url' => url($dashboardRoute . '/errors/' . $error->id),
+                'url' => url($dashboardRoute.'/errors/'.$error->id),
                 'timestamp' => $error->last_occurred_at->toIso8601String(),
             ],
             'actions' => [
@@ -87,6 +87,7 @@ class PushNotifier
 
             if (empty($vapidPublicKey) || empty($vapidPrivateKey)) {
                 Log::warning('Log Notifier: VAPID keys not configured');
+
                 return false;
             }
 
@@ -101,10 +102,11 @@ class PushNotifier
                 'TTL' => 86400,
                 'Urgency' => 'high',
             ])->withBody($encryptedPayload, 'application/octet-stream')
-              ->post($subscription->endpoint);
+                ->post($subscription->endpoint);
 
             if ($response->successful() || $response->status() === 201) {
                 $subscription->markAsUsed();
+
                 return true;
             }
 
@@ -120,6 +122,7 @@ class PushNotifier
                 'error' => $e->getMessage(),
                 'subscription_id' => $subscription->id,
             ]);
+
             return false;
         }
     }
@@ -132,7 +135,7 @@ class PushNotifier
     {
         // Parse the endpoint URL
         $parsedUrl = parse_url($subscription->endpoint);
-        $audience = $parsedUrl['scheme'] . '://' . $parsedUrl['host'];
+        $audience = $parsedUrl['scheme'].'://'.$parsedUrl['host'];
 
         // Create JWT token
         $header = $this->base64UrlEncode(json_encode(['typ' => 'JWT', 'alg' => 'ES256']));
@@ -142,16 +145,16 @@ class PushNotifier
             'sub' => $subject,
         ]));
 
-        $unsignedToken = $header . '.' . $payload;
-        
+        $unsignedToken = $header.'.'.$payload;
+
         // Sign with ECDSA - simplified for demonstration
         // In production, use a proper JWT library
         $signature = $this->signWithECDSA($unsignedToken, $privateKey);
-        $jwt = $unsignedToken . '.' . $signature;
+        $jwt = $unsignedToken.'.'.$signature;
 
         return [
-            'authorization' => 'vapid t=' . $jwt . ', k=' . $publicKey,
-            'crypto_key' => 'p256ecdsa=' . $publicKey,
+            'authorization' => 'vapid t='.$jwt.', k='.$publicKey,
+            'crypto_key' => 'p256ecdsa='.$publicKey,
         ];
     }
 
@@ -162,7 +165,7 @@ class PushNotifier
     {
         // This is a placeholder - in production use openssl or a dedicated library
         // For full implementation, consider using minishlink/web-push package
-        return $this->base64UrlEncode(hash('sha256', $data . $privateKey, true));
+        return $this->base64UrlEncode(hash('sha256', $data.$privateKey, true));
     }
 
     /**
@@ -194,7 +197,7 @@ class PushNotifier
             return $string;
         }
 
-        return substr($string, 0, $length - 3) . '...';
+        return substr($string, 0, $length - 3).'...';
     }
 
     /**
@@ -210,7 +213,7 @@ class PushNotifier
             'body' => 'Laravel Log Notifier is working correctly!',
             'icon' => config('log-notifier.notification.icon', '/vendor/log-notifier/icon.png'),
             'badge' => config('log-notifier.notification.badge', '/vendor/log-notifier/badge.png'),
-            'tag' => 'log-notifier-test-' . time(),
+            'tag' => 'log-notifier-test-'.time(),
             'data' => [
                 'test' => true,
                 'url' => url(config('log-notifier.dashboard_route', '/log-notifier')),

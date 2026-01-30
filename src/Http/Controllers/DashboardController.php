@@ -46,7 +46,7 @@ class DashboardController extends Controller
     {
         $error = $this->repository->find($id);
 
-        if (!$error) {
+        if (! $error) {
             abort(404, 'Error not found');
         }
 
@@ -67,12 +67,14 @@ class DashboardController extends Controller
             if ($request->wantsJson()) {
                 return response()->json(['success' => true, 'message' => 'Error marked as resolved']);
             }
+
             return back()->with('success', 'Error marked as resolved');
         }
 
         if ($request->wantsJson()) {
             return response()->json(['success' => false, 'message' => 'Error not found'], 404);
         }
+
         return back()->with('error', 'Error not found');
     }
 
@@ -85,12 +87,14 @@ class DashboardController extends Controller
             if ($request->wantsJson()) {
                 return response()->json(['success' => true, 'message' => 'Error marked as unresolved']);
             }
+
             return back()->with('success', 'Error marked as unresolved');
         }
 
         if ($request->wantsJson()) {
             return response()->json(['success' => false, 'message' => 'Error not found'], 404);
         }
+
         return back()->with('error', 'Error not found');
     }
 
@@ -103,12 +107,14 @@ class DashboardController extends Controller
             if ($request->wantsJson()) {
                 return response()->json(['success' => true, 'message' => 'Error deleted']);
             }
+
             return redirect()->route('log-notifier.dashboard')->with('success', 'Error deleted');
         }
 
         if ($request->wantsJson()) {
             return response()->json(['success' => false, 'message' => 'Error not found'], 404);
         }
+
         return back()->with('error', 'Error not found');
     }
 

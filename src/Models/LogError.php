@@ -2,9 +2,9 @@
 
 namespace Irabbi360\LaravelLogNotifier\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 
 class LogError extends Model
 {
@@ -93,8 +93,8 @@ class LogError extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('message', 'like', "%{$search}%")
-              ->orWhere('file', 'like', "%{$search}%")
-              ->orWhere('trace', 'like', "%{$search}%");
+                ->orWhere('file', 'like', "%{$search}%")
+                ->orWhere('trace', 'like', "%{$search}%");
         });
     }
 
@@ -170,8 +170,8 @@ class LogError extends Model
             return 'Unknown';
         }
 
-        $file = str_replace(base_path() . '/', '', $this->file);
-        
+        $file = str_replace(base_path().'/', '', $this->file);
+
         return $this->line ? "{$file}:{$this->line}" : $file;
     }
 }
