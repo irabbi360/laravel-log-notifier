@@ -3,4 +3,222 @@
 // config for Irabbi360/LaravelLogNotifier
 return [
 
+    /*
+    |--------------------------------------------------------------------------
+    | Enable/Disable Log Notifier
+    |--------------------------------------------------------------------------
+    |
+    | Set this to false to disable the log notifier functionality.
+    |
+    */
+    'enabled' => env('LOG_NOTIFIER_ENABLED', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Log File Path
+    |--------------------------------------------------------------------------
+    |
+    | The path to the Laravel log file that should be monitored.
+    |
+    */
+    'log_path' => storage_path('logs/laravel.log'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Log Levels to Monitor
+    |--------------------------------------------------------------------------
+    |
+    | Specify which log levels should trigger notifications.
+    | Available levels: emergency, alert, critical, error, warning, notice, info, debug
+    |
+    */
+    'levels' => [
+        'emergency',
+        'alert',
+        'critical',
+        'error',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Check Interval
+    |--------------------------------------------------------------------------
+    |
+    | How often (in seconds) the log watcher should check for new errors.
+    |
+    */
+    'check_interval' => 10,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Deduplication
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, duplicate errors (same message, file, and line) will be
+    | grouped together instead of creating separate entries.
+    |
+    */
+    'deduplicate' => true,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Deduplication Time Window
+    |--------------------------------------------------------------------------
+    |
+    | Time window (in minutes) for deduplication. Errors within this window
+    | will be considered duplicates if they match.
+    |
+    */
+    'deduplicate_window' => 60,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notification Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configure the web push notification appearance.
+    |
+    */
+    'notification' => [
+        'title' => 'Laravel Error 🚨',
+        'icon' => '/vendor/log-notifier/icon.png',
+        'badge' => '/vendor/log-notifier/badge.png',
+        'vibrate' => [100, 50, 100],
+        'require_interaction' => true,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard Route
+    |--------------------------------------------------------------------------
+    |
+    | The URL path where the error dashboard will be accessible.
+    |
+    */
+    'dashboard_route' => '/log-notifier',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard Middleware
+    |--------------------------------------------------------------------------
+    |
+    | Middleware to apply to the dashboard routes for protection.
+    |
+    */
+    'middleware' => ['web'],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auth Middleware
+    |--------------------------------------------------------------------------
+    |
+    | Additional authentication middleware for dashboard access.
+    | Set to null or empty array to disable authentication.
+    |
+    */
+    'auth_middleware' => ['auth'],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Enable queueing for notification dispatching.
+    |
+    */
+    'queue' => [
+        'enabled' => env('LOG_NOTIFIER_QUEUE_ENABLED', false),
+        'connection' => env('LOG_NOTIFIER_QUEUE_CONNECTION', null),
+        'queue' => env('LOG_NOTIFIER_QUEUE_NAME', 'log-notifier'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | VAPID Keys for Web Push
+    |--------------------------------------------------------------------------
+    |
+    | Generate VAPID keys using: php artisan log-notifier:generate-vapid
+    |
+    */
+    'vapid' => [
+        'subject' => env('LOG_NOTIFIER_VAPID_SUBJECT', env('APP_URL', 'http://localhost')),
+        'public_key' => env('LOG_NOTIFIER_VAPID_PUBLIC_KEY', ''),
+        'private_key' => env('LOG_NOTIFIER_VAPID_PRIVATE_KEY', ''),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Error Retention
+    |--------------------------------------------------------------------------
+    |
+    | Number of days to keep error records in the database.
+    | Set to 0 to keep errors indefinitely.
+    |
+    */
+    'retention_days' => 30,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mask Sensitive Data
+    |--------------------------------------------------------------------------
+    |
+    | Patterns to mask in error messages and stack traces.
+    | Useful for hiding passwords, API keys, etc.
+    |
+    */
+    'mask_patterns' => [
+        '/password["\']?\s*[=:]\s*["\']?[^"\'&\s]+/i',
+        '/api[_-]?key["\']?\s*[=:]\s*["\']?[^"\'&\s]+/i',
+        '/secret["\']?\s*[=:]\s*["\']?[^"\'&\s]+/i',
+        '/token["\']?\s*[=:]\s*["\']?[^"\'&\s]+/i',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Mask Replacement
+    |--------------------------------------------------------------------------
+    |
+    | The string to use when masking sensitive data.
+    |
+    */
+    'mask_replacement' => '[REDACTED]',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Rate Limiting
+    |--------------------------------------------------------------------------
+    |
+    | Limit the number of notifications sent within a time period.
+    |
+    */
+    'rate_limit' => [
+        'enabled' => true,
+        'max_notifications' => 10,
+        'per_minutes' => 5,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Database Connection
+    |--------------------------------------------------------------------------
+    |
+    | Specify a database connection for log notifier tables.
+    | Set to null to use the default connection.
+    |
+    */
+    'database_connection' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Table Names
+    |--------------------------------------------------------------------------
+    |
+    | Customize the table names used by the package.
+    |
+    */
+    'tables' => [
+        'errors' => 'log_notifier_errors',
+        'subscriptions' => 'log_notifier_subscriptions',
+    ],
+
 ];
