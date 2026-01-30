@@ -75,9 +75,13 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
     {
         // Register event listener for real-time log processing
         if (config('log-notifier.enabled', true) && config('log-notifier.use_event_listener', true)) {
+            // Register as closure for better container resolution
             $this->app['events']->listen(
                 LogWritten::class,
-                ProcessNewLogEntry::class
+                function (LogWritten $event) {
+                    $listener = $this->app->make(ProcessNewLogEntry::class);
+                    $listener->handle($event);
+                }
             );
         }
     }

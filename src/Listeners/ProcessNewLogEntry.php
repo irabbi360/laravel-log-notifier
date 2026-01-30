@@ -46,12 +46,23 @@ class ProcessNewLogEntry
             if ($errorData) {
                 // Store the error in database
                 $this->repository->store($errorData);
+                
+                // Debug logging
+                if (config('log-notifier.debug', false)) {
+                    \Illuminate\Support\Facades\Log::info('[Log Notifier] Error captured', [
+                        'level' => $event->level,
+                        'file' => $errorData['file'] ?? 'unknown',
+                        'line' => $errorData['line'] ?? 0,
+                    ]);
+                }
             }
         } catch (\Exception $e) {
-            // Silently fail to avoid breaking the application
-            // Log this only if there's a specific logger for notifier
+            // Log errors in debug mode
             if (config('app.debug')) {
-                \Illuminate\Support\Facades\Log::debug('Log Notifier error processing:', ['error' => $e->getMessage()]);
+                \Illuminate\Support\Facades\Log::error('Log Notifier exception', [
+                    'message' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString(),
+                ]);
             }
         }
     }

@@ -15,6 +15,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Debug Mode
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, Log Notifier will log debug information about captured errors.
+    | Useful for troubleshooting if listeners aren't firing.
+    |
+    */
+    'debug' => env('LOG_NOTIFIER_DEBUG', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Log File Path
     |--------------------------------------------------------------------------
     |
