@@ -19,9 +19,27 @@ return [
     |--------------------------------------------------------------------------
     |
     | The path to the Laravel log file that should be monitored.
+    | Can be a single file path or a directory to scan all .log files.
+    |
+    | Examples:
+    | - Single file: storage_path('logs/laravel.log')
+    | - All logs in directory: storage_path('logs')
     |
     */
-    'log_path' => storage_path('logs/laravel.log'),
+    'log_path' => storage_path('logs'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Scan All Log Files
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, all .log files in the log directory will be monitored.
+    | This is useful for multi-channel or daily rotated logs.
+    |
+    | When disabled, only the exact file path specified in 'log_path' is monitored.
+    |
+    */
+    'scan_all_logs' => env('LOG_NOTIFIER_SCAN_ALL_LOGS', true),
 
     /*
     |--------------------------------------------------------------------------

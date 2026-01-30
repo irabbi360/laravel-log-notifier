@@ -62,13 +62,16 @@ return [
     // Enable/disable the notifier
     'enabled' => env('LOG_NOTIFIER_ENABLED', true),
 
-    // Path to Laravel log file
-    'log_path' => storage_path('logs/laravel.log'),
+    // Path to log file or directory to scan
+    'log_path' => storage_path('logs'),
+
+    // Scan all .log files in directory (if path is a directory)
+    'scan_all_logs' => env('LOG_NOTIFIER_SCAN_ALL_LOGS', true),
 
     // Log levels to monitor
     'levels' => ['emergency', 'alert', 'critical', 'error'],
 
-    // Check interval (seconds)
+    // Check interval (seconds) for log watcher
     'check_interval' => 10,
 
     // Group duplicate errors
@@ -111,6 +114,33 @@ Access the error dashboard at:
 
 ```
 https://your-app.com/log-notifier
+```
+
+### Multi-File Log Monitoring
+
+The package supports monitoring multiple log files automatically:
+
+**Scan All Logs (Default)**
+```php
+// config/log-notifier.php
+'log_path' => storage_path('logs'),      // Directory path
+'scan_all_logs' => true,                 // Scans all *.log files
+```
+
+This works great with:
+- Daily rotated logs (`laravel-2026-01-31.log`)
+- Multi-channel logs
+- Custom log files in the logs directory
+
+**Monitor Single File**
+```php
+'log_path' => storage_path('logs/laravel.log'),
+'scan_all_logs' => false,  // Only monitor this specific file
+```
+
+**Disable via Environment**
+```bash
+LOG_NOTIFIER_SCAN_ALL_LOGS=false
 ```
 
 ### Enable Toast Notifications

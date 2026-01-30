@@ -26,7 +26,7 @@ class LogWatcher
     }
 
     /**
-     * Watch the log file for new errors.
+     * Watch the log file(s) for new errors.
      */
     public function watch(): array
     {
@@ -34,12 +34,51 @@ class LogWatcher
             return [];
         }
 
-        if (! File::exists($this->logPath)) {
+        $processedErrors = [];
+        $logFiles = $this->getLogFiles();
+
+        foreach ($logFiles as $logFile) {
+            $errors = $this->watchFile($logFile);
+            $processedErrors = array_merge($processedErrors, $errors);
+        }
+
+        return $processedErrors;
+    }
+
+    /**
+     * Get all log files to monitor.
+     */
+    protected function getLogFiles(): array
+    {
+        $logPath = config('log-notifier.log_path', storage_path('logs'));
+        $scanAll = config('log-notifier.scan_all_logs', true);
+
+        // If scan_all_logs is disabled or path is a file, return single file
+        if (! $scanAll || (File::exists($logPath) && ! File::isDirectory($logPath))) {
+            return File::exists($logPath) ? [$logPath] : [];
+        }
+
+        // If path is a directory, scan for all .log files
+        if (File::isDirectory($logPath)) {
+            $files = File::glob($logPath . '/*.log');
+            return $files ?: [];
+        }
+
+        // Fallback to single file
+        return File::exists($logPath) ? [$logPath] : [];
+    }
+
+    /**
+     * Watch a single log file for new errors.
+     */
+    protected function watchFile(string $logFile): array
+    {
+        if (! File::exists($logFile)) {
             return [];
         }
 
-        $lastPosition = $this->getLastPosition();
-        $currentSize = File::size($this->logPath);
+        $lastPosition = $this->getLastPosition($logFile);
+        $currentSize = File::size($logFile);
 
         // If file was rotated or truncated, start from beginning
         if ($currentSize < $lastPosition) {
@@ -51,8 +90,8 @@ class LogWatcher
             return [];
         }
 
-        $newContent = $this->readNewContent($lastPosition, $currentSize);
-        $this->saveLastPosition($currentSize);
+        $newContent = $this->readNewContent($lastPosition, $currentSize, $logFile);
+        $this->saveLastPosition($currentSize, $logFile);
 
         if (empty($newContent)) {
             return [];
@@ -76,9 +115,9 @@ class LogWatcher
     /**
      * Read new content from the log file.
      */
-    protected function readNewContent(int $start, int $end): string
+    protected function readNewContent(int $start, int $end, string $logFile): string
     {
-        $handle = fopen($this->logPath, 'r');
+        $handle = fopen($logFile, 'r');
 
         if (! $handle) {
             return '';
@@ -92,35 +131,44 @@ class LogWatcher
     }
 
     /**
-     * Get the last read position from cache.
+     * Get the last read position for a log file.
      */
-    protected function getLastPosition(): int
+    protected function getLastPosition(string $logFile = null): int
     {
-        return Cache::get($this->getCacheKey(), 0);
+        $logFile = $logFile ?? $this->logPath;
+        $key = $this->getCacheKey($logFile);
+
+        return (int) Cache::get($key, 0);
     }
 
     /**
-     * Save the current position to cache.
+     * Save the current position for a log file.
      */
-    protected function saveLastPosition(int $position): void
+    protected function saveLastPosition(int $position, string $logFile = null): void
     {
-        Cache::forever($this->getCacheKey(), $position);
+        $logFile = $logFile ?? $this->logPath;
+        $key = $this->getCacheKey($logFile);
+
+        Cache::put($key, $position, now()->addDays(7));
     }
 
     /**
-     * Get the cache key for storing position.
+     * Generate cache key for a log file.
      */
-    protected function getCacheKey(): string
+    protected function getCacheKey(string $logFile): string
     {
-        return 'log_notifier_position_'.md5($this->logPath);
+        return 'log_notifier_position_' . md5($logFile);
     }
 
     /**
-     * Reset the position tracker.
+     * Reset the position tracker for all log files.
      */
     public function resetPosition(): void
     {
-        Cache::forget($this->getCacheKey());
+        $logFiles = $this->getLogFiles();
+        foreach ($logFiles as $logFile) {
+            Cache::forget($this->getCacheKey($logFile));
+        }
     }
 
     /**
