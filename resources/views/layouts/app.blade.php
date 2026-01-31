@@ -47,28 +47,10 @@
                         <span class="font-semibold text-xl text-gray-800">Log Notifier</span>
                     </a>
                 </div>
-                <div class="flex items-center space-x-4" x-data="toastNotifications()" x-init="init()">
-                    <!-- Notification Bell -->
-                    <div class="relative">
-                        <button 
-                            @click="enabled = !enabled; if(enabled) startPolling(); else stopPolling();"
-                            :class="enabled ? 'text-green-600' : 'text-gray-400'"
-                            class="p-2 rounded-full hover:bg-gray-100 transition-colors relative"
-                            :title="enabled ? 'Toast notifications enabled' : 'Toast notifications disabled'"
-                        >
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
-                            </svg>
-                            <span x-show="enabled" class="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
-                        </button>
-                    </div>
-                    
+                <div class="flex items-center space-x-4">
                     <!-- Status indicator -->
-                    <span x-show="enabled" class="text-xs text-green-600 font-medium">
+                    <span class="text-xs text-green-600 font-medium">
                         🔔 Live
-                    </span>
-                    <span x-show="!enabled" x-cloak class="text-xs text-gray-400">
-                        🔕 Off
                     </span>
                 </div>
             </div>
@@ -217,66 +199,6 @@
         };
         
         Toast.init();
-        
-        // Alpine.js component for toast notifications
-        function toastNotifications() {
-            return {
-                enabled: localStorage.getItem('logNotifierToasts') !== 'false',
-                lastChecked: null,
-                pollInterval: null,
-                
-                init() {
-                    this.lastChecked = new Date().toISOString();
-                    if (this.enabled) {
-                        this.startPolling();
-                    }
-                },
-                
-                startPolling() {
-                    this.enabled = true;
-                    localStorage.setItem('logNotifierToasts', 'true');
-                    
-                    // Poll every 10 seconds
-                    this.pollInterval = setInterval(() => this.checkForNewErrors(), {{ config('log-notifier.check_interval', 10) * 1000 }});
-                    
-                    Toast.show('Toast notifications enabled', 'success', 2000);
-                },
-                
-                stopPolling() {
-                    this.enabled = false;
-                    localStorage.setItem('logNotifierToasts', 'false');
-                    
-                    if (this.pollInterval) {
-                        clearInterval(this.pollInterval);
-                        this.pollInterval = null;
-                    }
-                    
-                    Toast.show('Toast notifications disabled', 'info', 2000);
-                },
-                
-                async checkForNewErrors() {
-                    try {
-                        const response = await fetch(`{{ route('log-notifier.api.recent') }}?since=${encodeURIComponent(this.lastChecked)}`);
-                        const data = await response.json();
-                        
-                        if (data.data && data.data.length > 0) {
-                            data.data.forEach(error => {
-                                Toast.show(
-                                    error.message.substring(0, 150) + (error.message.length > 150 ? '...' : ''),
-                                    error.level,
-                                    8000,
-                                    () => window.location.href = `{{ url(config('log-notifier.dashboard_route', '/log-notifier')) }}/errors/${error.id}`
-                                );
-                            });
-                        }
-                        
-                        this.lastChecked = data.timestamp || new Date().toISOString();
-                    } catch (error) {
-                        console.error('Failed to check for new errors:', error);
-                    }
-                }
-            };
-        }
     </script>
 
     <!-- Global Log Notifier Toast Notifications -->

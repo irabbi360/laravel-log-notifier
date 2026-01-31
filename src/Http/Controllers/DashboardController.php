@@ -188,7 +188,9 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get recent errors since a given timestamp (for toast notifications).
+     * Get recent errors since a given timestamp (for polling/fallback).
+     * NOTE: This is only used as a fallback if SSE is disabled.
+     * Default behavior uses SSE stream endpoint which is real-time.
      * Routes to appropriate source based on configuration.
      */
     public function recent(Request $request)
@@ -202,57 +204,74 @@ class DashboardController extends Controller
      * Server-Sent Events stream for real-time alerts.
      * Clients connect via EventSource and receive alerts without polling.
      */
+    /**
+     * Server-Sent Events stream for real-time alerts.
+     * Clients connect via EventSource and receive alerts when errors actually occur.
+     * No continuous polling - only sends data when needed.
+     */
     public function stream(Request $request)
     {
-        // Set response headers for Server-Sent Events
+        // Get Last-Event-ID from request header
+        $lastEventId = (int) $request->header('Last-Event-ID', 0);
+
+        // Send any pending errors immediately
+        $pendingErrors = $this->getPendingErrors($lastEventId);
+        
+        if (!empty($pendingErrors)) {
+            // Client has missed some errors - send them immediately
+            $response = response()->stream(function () use ($pendingErrors) {
+                header('Content-Type: text/event-stream');
+                header('Cache-Control: no-cache');
+                header('Connection: keep-alive');
+                header('X-Accel-Buffering: no');
+
+                foreach ($pendingErrors as $error) {
+                    echo "id: {$error['id']}\n";
+                    echo 'data: '.json_encode($error)."\n\n";
+                    flush();
+                }
+
+                // Keep connection open for 55 seconds
+                $endTime = time() + 55;
+                while (time() < $endTime) {
+                    echo ": ping\n\n";
+                    flush();
+                    sleep(10);
+                    
+                    if (connection_aborted()) {
+                        break;
+                    }
+                }
+            }, 200, [
+                'Content-Type' => 'text/event-stream',
+                'Cache-Control' => 'no-cache',
+                'Connection' => 'keep-alive',
+            ]);
+
+            return $response;
+        }
+
+        // No pending errors - keep connection alive and wait for new errors
         return response()->stream(function () {
-            // Set headers for SSE
             header('Content-Type: text/event-stream');
             header('Cache-Control: no-cache');
             header('Connection: keep-alive');
             header('X-Accel-Buffering: no');
 
-            // Send a comment to keep connection alive
-            echo ": Stream started\n\n";
+            echo ": Stream ready\n\n";
             flush();
 
-            $lastEventId = $request->header('Last-Event-ID', 0);
-            $checkInterval = config('log-notifier.sse_check_interval', 1); // 1 second
-            $maxDuration = config('log-notifier.sse_max_duration', 300); // 5 minutes
-            $startTime = time();
-
-            while (time() - $startTime < $maxDuration) {
-                // Get recent errors since last check
-                $errors = $this->getStreamErrors($lastEventId);
-
-                if (! empty($errors)) {
-                    foreach ($errors as $error) {
-                        // Send as SSE event
-                        echo "id: {$error['id']}\n";
-                        echo 'data: '.json_encode($error)."\n\n";
-                        flush();
-
-                        $lastEventId = max($lastEventId, (int) $error['id']);
-                    }
-                }
-
-                // Keep connection alive with heartbeat
+            // Keep connection open for 55 seconds (client will reconnect)
+            $endTime = time() + 55;
+            while (time() < $endTime) {
                 echo ": ping\n\n";
                 flush();
-
-                // Sleep before next check
-                sleep($checkInterval);
-
-                // Check if client disconnected
+                sleep(10);
+                
                 if (connection_aborted()) {
                     break;
                 }
             }
-
-            // Connection timeout
-            echo "event: close\n";
-            echo "data: Connection closed\n\n";
-            flush();
         }, 200, [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache',
@@ -261,43 +280,91 @@ class DashboardController extends Controller
     }
 
     /**
+     * Get pending errors since last event ID
+     * Only retrieves errors that haven't been sent yet
+     */
+    protected function getPendingErrors($lastEventId = 0): array
+    {
+        try {
+            $useDatabase = config('log-notifier.store_in_database', true);
+
+            if (!$useDatabase) {
+                // File mode - return empty, new errors come via stream polling
+                return [];
+            }
+
+            // Database mode - get new errors
+            $errors = \Irabbi360\LaravelLogNotifier\Models\LogError::query()
+                ->where('id', '>', $lastEventId)
+                ->orderBy('id', 'asc')
+                ->limit(10)
+                ->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at']);
+
+            return $errors->map(function ($error) {
+                return [
+                    'id' => $error->id,
+                    'level' => $error->level,
+                    'message' => \Illuminate\Support\Str::limit($error->message, 200),
+                    'file' => $error->file,
+                    'line' => $error->line,
+                    'occurred_at' => $error->last_occurred_at->toIso8601String(),
+                ];
+            })->toArray();
+        } catch (\Exception $e) {
+            // Return empty array on error
+            if (config('log-notifier.debug')) {
+                error_log('[Log Notifier] Stream error: ' . $e->getMessage());
+            }
+            return [];
+        }
+    }
+
+    /**
      * Get errors for streaming (newer than lastEventId)
      */
     protected function getStreamErrors($lastEventId = 0): array
     {
-        $useDatabase = config('log-notifier.store_in_database', true);
+        try {
+            $useDatabase = config('log-notifier.store_in_database', true);
 
-        if ($useDatabase) {
-            return \Irabbi360\LaravelLogNotifier\Models\LogError::query()
-                ->where('id', '>', $lastEventId)
-                ->orderBy('id', 'asc')
-                ->limit(10)
-                ->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at'])
-                ->map(function ($error) {
+            if ($useDatabase) {
+                return \Irabbi360\LaravelLogNotifier\Models\LogError::query()
+                    ->where('id', '>', $lastEventId)
+                    ->orderBy('id', 'asc')
+                    ->limit(10)
+                    ->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at'])
+                    ->map(function ($error) {
+                        return [
+                            'id' => $error->id,
+                            'level' => $error->level,
+                            'message' => \Illuminate\Support\Str::limit($error->message, 200),
+                            'file' => $error->file,
+                            'line' => $error->line,
+                            'occurred_at' => $error->last_occurred_at->toIso8601String(),
+                        ];
+                    })
+                    ->toArray();
+            } else {
+                // For file mode, use cache with timestamps
+                $errors = ErrorCache::getAll();
+                
+                return array_map(function ($error) {
                     return [
-                        'id' => $error->id,
-                        'level' => $error->level,
-                        'message' => \Illuminate\Support\Str::limit($error->message, 200),
-                        'file' => $error->file,
-                        'line' => $error->line,
-                        'occurred_at' => $error->last_occurred_at->toIso8601String(),
+                        'id' => $error['id'] ?? uniqid(),
+                        'level' => $error['level'] ?? 'error',
+                        'message' => \Illuminate\Support\Str::limit($error['message'] ?? '', 200),
+                        'file' => $error['file'] ?? 'unknown',
+                        'line' => $error['line'] ?? 0,
+                        'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
                     ];
-                })
-                ->toArray();
-        } else {
-            // For file mode, use cache with timestamps
-            $errors = ErrorCache::getAll();
-
-            return array_map(function ($error) {
-                return [
-                    'id' => $error['id'] ?? uniqid(),
-                    'level' => $error['level'] ?? 'error',
-                    'message' => \Illuminate\Support\Str::limit($error['message'] ?? '', 200),
-                    'file' => $error['file'] ?? 'unknown',
-                    'line' => $error['line'] ?? 0,
-                    'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
-                ];
-            }, array_slice($errors, 0, 10));
+                }, array_slice($errors, 0, 10));
+            }
+        } catch (\Exception $e) {
+            // Log error and return empty array to keep stream alive
+            if (config('log-notifier.debug')) {
+                error_log('[Log Notifier SSE Error] ' . $e->getMessage());
+            }
+            return [];
         }
     }
 

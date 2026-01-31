@@ -278,16 +278,22 @@ const GlobalToast = {
         this.eventSource.addEventListener('error', (e) => {
             console.warn('[Log Notifier] SSE connection error:', e);
             this.eventSource.close();
-            // Fallback to polling if SSE fails
-            if (this.enabled && !this.pollInterval) {
-                this.startPolling();
-            }
+            // Attempt to reconnect after 5 seconds
+            setTimeout(() => {
+                if (this.enabled) {
+                    this.startSSE();
+                }
+            }, 5000);
         });
 
         // Handle stream close
         this.eventSource.addEventListener('close', (e) => {
             console.log('[Log Notifier] SSE stream closed');
             this.eventSource.close();
+            // Attempt to reconnect
+            if (this.enabled) {
+                setTimeout(() => this.startSSE(), 5000);
+            }
         });
     },
 
@@ -323,68 +329,6 @@ const GlobalToast = {
         );
     },
 
-    removeToast(toast) {
-        toast.classList.add('removing');
-        setTimeout(() => toast.remove(), 300);
-    },
-
-    checkForNewErrors() {
-        if (!this.enabled) return;
-
-        fetch(`${this.dashboardRoute}/api/recent?since=${encodeURIComponent(this.lastChecked)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.data && data.data.length > 0) {
-                    const now = new Date();
-                    this.lastChecked = now.toISOString();
-
-                    data.data.forEach(error => {
-                        const typeMap = {
-                            'emergency': 'emergency',
-                            'alert': 'alert',
-                            'critical': 'critical',
-                            'error': 'error',
-                            'warning': 'warning',
-                            'notice': 'info',
-                            'info': 'info',
-                            'debug': 'info'
-                        };
-
-                        const type = typeMap[error.level] || 'info';
-                        const message = error.message.substring(0, 100);
-
-                        this.show(
-                            message,
-                            type,
-                            5000,
-                            () => {
-                                window.location.href = `${this.dashboardRoute}/errors/${error.id}`;
-                            }
-                        );
-                    });
-                }
-            })
-            .catch(error => {
-                if (this.enabled) {
-                    console.warn('[Log Notifier] Failed to check for errors:', error);
-                }
-            });
-    },
-
-    startPolling() {
-        if (this.pollInterval) return;
-
-        this.checkForNewErrors();
-        this.pollInterval = setInterval(() => this.checkForNewErrors(), 10000);
-    },
-
-    stopPolling() {
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
-            this.pollInterval = null;
-        }
-    },
-
     toggle() {
         this.enabled = !this.enabled;
         localStorage.setItem('logNotifierToasts', this.enabled ? 'true' : 'false');
@@ -394,22 +338,12 @@ const GlobalToast = {
             toggle.classList.remove('disabled');
             toggle.title = 'Notifications enabled';
             this.show('Notifications enabled ✓', 'success', 3000);
-            
-            if (this.useSSE) {
-                this.startSSE();
-            } else {
-                this.startPolling();
-            }
+            this.startSSE();
         } else {
             toggle.classList.add('disabled');
             toggle.title = 'Notifications disabled';
             this.show('Notifications disabled', 'info', 2000);
-            
-            if (this.useSSE) {
-                this.stopSSE();
-            } else {
-                this.stopPolling();
-            }
+            this.stopSSE();
         }
     },
 
