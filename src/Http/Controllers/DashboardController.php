@@ -194,6 +194,7 @@ class DashboardController extends Controller
     public function recent(Request $request)
     {
         $since = $request->get('since');
+
         return $this->recentFromDatabase($since);
     }
 
@@ -228,7 +229,7 @@ class DashboardController extends Controller
                     foreach ($errors as $error) {
                         // Send as SSE event
                         echo "id: {$error['id']}\n";
-                        echo "data: " . json_encode($error) . "\n\n";
+                        echo 'data: '.json_encode($error)."\n\n";
                         flush();
 
                         $lastEventId = max($lastEventId, (int) $error['id']);
@@ -286,7 +287,7 @@ class DashboardController extends Controller
         } else {
             // For file mode, use cache with timestamps
             $errors = ErrorCache::getAll();
-            
+
             return array_map(function ($error) {
                 return [
                     'id' => $error['id'] ?? uniqid(),
@@ -307,7 +308,7 @@ class DashboardController extends Controller
     protected function recentFromDatabase(?string $since)
     {
         $useDatabase = config('log-notifier.store_in_database', true);
-        
+
         if ($useDatabase) {
             return $this->getRecentFromDatabaseStorage($since);
         } else {
