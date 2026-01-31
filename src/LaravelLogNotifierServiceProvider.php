@@ -4,8 +4,8 @@ namespace Irabbi360\LaravelLogNotifier;
 
 use Illuminate\Log\Events\LogWritten;
 use Irabbi360\LaravelLogNotifier\Commands\ClearErrorsCommand;
-use Irabbi360\LaravelLogNotifier\Commands\WatchLogsCommand;
 use Irabbi360\LaravelLogNotifier\Commands\TestCommand;
+use Irabbi360\LaravelLogNotifier\Commands\WatchLogsCommand;
 use Irabbi360\LaravelLogNotifier\Listeners\ProcessNewLogEntry;
 use Irabbi360\LaravelLogNotifier\Services\ErrorParser;
 use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
@@ -85,7 +85,7 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
 
         // Register LogNotifierWatcher facade
         $this->app->singleton('log-notifier-watcher', function ($app) {
-            return new \Irabbi360\LaravelLogNotifier\LogNotifierWatcher();
+            return new \Irabbi360\LaravelLogNotifier\LogNotifierWatcher;
         });
 
         if (! config('log-notifier.enabled', true)) {
