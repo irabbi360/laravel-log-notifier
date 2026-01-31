@@ -122,11 +122,11 @@ class ProcessNewLogEntry
 
         // Limit message length
         if (strlen($errorMessage) > 500) {
-            $errorMessage = substr($errorMessage, 0, 500) . '...';
+            $errorMessage = substr($errorMessage, 0, 500).'...';
         }
 
         // Generate hash for deduplication
-        $hash = sha1($errorMessage . $file . $line);
+        $hash = sha1($errorMessage.$file.$line);
 
         return [
             'level' => $level,

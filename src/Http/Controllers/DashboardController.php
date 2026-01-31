@@ -233,7 +233,7 @@ class DashboardController extends Controller
             // Send any pending errors
             $pendingErrors = $this->getPendingErrors($lastEventId);
 
-            if (!empty($pendingErrors)) {
+            if (! empty($pendingErrors)) {
                 foreach ($pendingErrors as $error) {
                     echo "id: {$error['id']}\n";
                     echo 'data: '.json_encode($error)."\n\n";
@@ -264,7 +264,7 @@ class DashboardController extends Controller
             flush();
         } catch (\Exception $e) {
             // Log error but don't output it (would break SSE protocol)
-            error_log('[Log Notifier Stream Error] ' . $e->getMessage());
+            error_log('[Log Notifier Stream Error] '.$e->getMessage());
 
             // Send error event
             echo "event: error\n";
@@ -284,7 +284,7 @@ class DashboardController extends Controller
         try {
             $useDatabase = config('log-notifier.store_in_database', true);
 
-            if (!$useDatabase) {
+            if (! $useDatabase) {
                 // File mode - return empty, new errors will be picked up on next poll
                 return [];
             }
@@ -292,8 +292,9 @@ class DashboardController extends Controller
             // Database mode - get new errors
             $modelClass = \Irabbi360\LaravelLogNotifier\Models\LogError::class;
 
-            if (!class_exists($modelClass)) {
+            if (! class_exists($modelClass)) {
                 error_log('[Log Notifier] LogError model not found');
+
                 return [];
             }
 
@@ -303,7 +304,7 @@ class DashboardController extends Controller
                 ->limit(10)
                 ->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at']);
 
-            if (!$errors || $errors->isEmpty()) {
+            if (! $errors || $errors->isEmpty()) {
                 return [];
             }
 
@@ -319,8 +320,8 @@ class DashboardController extends Controller
             })->toArray();
         } catch (\Throwable $e) {
             // Log detailed error for debugging
-            error_log('[Log Notifier Stream] Error fetching pending errors: ' . $e->getMessage());
-            error_log('[Log Notifier Stream] File: ' . $e->getFile() . ' Line: ' . $e->getLine());
+            error_log('[Log Notifier Stream] Error fetching pending errors: '.$e->getMessage());
+            error_log('[Log Notifier Stream] File: '.$e->getFile().' Line: '.$e->getLine());
 
             // Return empty array to keep stream alive
             return [];
@@ -370,8 +371,9 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             // Log error and return empty array to keep stream alive
             if (config('log-notifier.debug')) {
-                error_log('[Log Notifier SSE Error] ' . $e->getMessage());
+                error_log('[Log Notifier SSE Error] '.$e->getMessage());
             }
+
             return [];
         }
     }
