@@ -83,6 +83,34 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Store in Database
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, errors will be stored in the log_notifier_errors table.
+    | When disabled, errors are only cached temporarily for display in toast notifications.
+    |
+    | This allows real-time toast alerts without database overhead.
+    | Set to false for development/testing, true for production tracking.
+    |
+    */
+    'store_in_database' => env('LOG_NOTIFIER_STORE_IN_DB', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cache Duration (Minutes)
+    |--------------------------------------------------------------------------
+    |
+    | When store_in_database is false, cached errors are kept for this duration.
+    | After expiry, they're removed from the toast notification queue.
+    |
+    | This prevents memory bloat when running without database storage.
+    | Default: 60 minutes
+    |
+    */
+    'cache_duration' => env('LOG_NOTIFIER_CACHE_DURATION', 60),
+
+    /*
+    |--------------------------------------------------------------------------
     | Check Interval
     |--------------------------------------------------------------------------
     |

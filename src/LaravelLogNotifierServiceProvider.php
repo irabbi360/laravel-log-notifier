@@ -73,6 +73,14 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        // Register facade alias for easy access
+        if (!class_exists('LogNotifier')) {
+            class_alias(
+                \Irabbi360\LaravelLogNotifier\Facades\LaravelLogNotifier::class,
+                'LogNotifier'
+            );
+        }
+
         // Register event listener for real-time log processing
         if (config('log-notifier.enabled', true) && config('log-notifier.use_event_listener', true)) {
             // Register as closure for better container resolution

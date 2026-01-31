@@ -63,6 +63,12 @@ return [
     // Enable/disable the notifier
     'enabled' => env('LOG_NOTIFIER_ENABLED', true),
 
+    // Store in database (true) or use cache-only (false)
+    'store_in_database' => env('LOG_NOTIFIER_STORE_IN_DB', true),
+
+    // Cache duration in minutes when store_in_database is false
+    'cache_duration' => env('LOG_NOTIFIER_CACHE_DURATION', 60),
+
     // Path to log file or directory to scan
     'log_path' => storage_path('logs'),
 
@@ -109,6 +115,47 @@ The package automatically captures errors in **three ways**:
    ```bash
    php artisan log-notifier:watch --once
    ```
+
+### Optional: Disable Database Storage
+
+For a lightweight setup (perfect for development), use cache-only or file-based mode:
+
+```bash
+# In .env
+LOG_NOTIFIER_STORE_IN_DB=false        # Use cache or files instead
+LOG_NOTIFIER_CACHE_DURATION=60        # Cache expires after 60 minutes
+```
+
+This gives you:
+- ✅ Real-time toast alerts
+- ✅ No database overhead
+- ✅ Dashboard reads from log files
+- ❌ No persistent error history
+- ❌ Limited dashboard features
+
+See [OPTIONAL_DATABASE_STORAGE.md](OPTIONAL_DATABASE_STORAGE.md) for full details.
+
+### Dashboard Data Source
+
+The dashboard automatically switches data source based on configuration:
+
+```bash
+LOG_NOTIFIER_STORE_IN_DB=true   # Read from database (full features)
+LOG_NOTIFIER_STORE_IN_DB=false  # Read from log files (lightweight)
+```
+
+Both modes show errors in the dashboard with:
+- Error list and search
+- Statistics & charts
+- Real-time toast notifications
+
+See [DASHBOARD_DATA_SOURCES.md](DASHBOARD_DATA_SOURCES.md) for complete details.
+- ✅ No database overhead
+- ✅ Errors auto-expire after specified duration
+- ❌ No persistent error history
+
+See [OPTIONAL_DATABASE_STORAGE.md](OPTIONAL_DATABASE_STORAGE.md) for full details.
+
 ### Dashboard
 
 Access the error dashboard at:
@@ -287,6 +334,38 @@ Click → Error Dashboard
 ```bash
 composer test
 ```
+
+
+## 🐛 Troubleshooting
+
+### Global Toast Notifications Not Showing?
+
+If error alerts aren't appearing as toast notifications, see the [Global Notifications Troubleshooting Guide](GLOBAL_NOTIFICATIONS_TROUBLESHOOTING.md).
+
+It covers:
+- Verifying errors are being captured in the database
+- Checking if the API endpoint is working
+- Debugging JavaScript polling
+- Common issues and solutions
+
+### Quick Diagnostics
+
+Run the diagnostic script:
+
+```bash
+php global-toast-check.php
+```
+
+This will verify:
+- ✅ Package configuration
+- ✅ Database table
+- ✅ Event listener registration
+- ✅ View files
+- ✅ Facade availability
+
+### Dashboard Issues
+
+For general package troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## 📝 Changelog
 

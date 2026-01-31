@@ -5,6 +5,8 @@ namespace Irabbi360\LaravelLogNotifier\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
+use Irabbi360\LaravelLogNotifier\Services\ErrorCache;
+use Irabbi360\LaravelLogNotifier\Services\LogFileReader;
 
 class DashboardController extends Controller
 {
@@ -17,6 +19,7 @@ class DashboardController extends Controller
 
     /**
      * Display the error dashboard.
+     * Reads from database, cache, or files based on configuration.
      */
     public function index(Request $request)
     {
@@ -28,23 +31,46 @@ class DashboardController extends Controller
             'end_date' => $request->get('end_date'),
         ];
 
-        $errors = $this->repository->getErrors(array_filter($filters), 20);
-        $statistics = $this->repository->getStatistics();
+        // Determine data source
+        $useDatabase = config('log-notifier.store_in_database', true);
+        
+        if ($useDatabase) {
+            // Read from database
+            $errors = $this->repository->getErrors(array_filter($filters), 20);
+            $statistics = $this->repository->getStatistics();
+        } else {
+            // Read from files (or cache)
+            $errors = LogFileReader::getErrors(array_filter($filters), 20);
+            $statistics = LogFileReader::getStatistics();
+        }
 
         return view('log-notifier::dashboard.index', [
             'errors' => $errors,
             'statistics' => $statistics,
             'filters' => $filters,
             'levels' => config('log-notifier.levels', ['error', 'critical', 'alert', 'emergency']),
+            'source' => $useDatabase ? 'database' : 'files',
         ]);
     }
 
     /**
      * Display a single error.
+     * Works with both database and file sources.
      */
     public function show(int $id)
     {
-        $error = $this->repository->find($id);
+        $useDatabase = config('log-notifier.store_in_database', true);
+
+        if ($useDatabase) {
+            $error = $this->repository->find($id);
+        } else {
+            // For file mode, errors can't be individually retrieved
+            // Show a message indicating this
+            return view('log-notifier::dashboard.show', [
+                'error' => null,
+                'message' => 'Error details not available in file mode. Check the error list or log files directly.',
+            ]);
+        }
 
         if (! $error) {
             abort(404, 'Error not found');
@@ -163,11 +189,25 @@ class DashboardController extends Controller
 
     /**
      * Get recent errors since a given timestamp (for toast notifications).
+     * Works with database, cache, or file sources based on configuration.
      */
     public function recent(Request $request)
     {
         $since = $request->get('since');
+        $useDatabase = config('log-notifier.store_in_database', true);
 
+        if ($useDatabase) {
+            return $this->recentFromDatabase($since);
+        } else {
+            return $this->recentFromFiles($since);
+        }
+    }
+
+    /**
+     * Get recent errors from database
+     */
+    protected function recentFromDatabase(?string $since)
+    {
         $query = \Irabbi360\LaravelLogNotifier\Models\LogError::query()
             ->where('is_resolved', false)
             ->orderBy('last_occurred_at', 'desc')
@@ -185,7 +225,7 @@ class DashboardController extends Controller
         $errors = $query->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at']);
 
         return response()->json([
-            'errors' => $errors->map(function ($error) {
+            'data' => $errors->map(function ($error) {
                 return [
                     'id' => $error->id,
                     'level' => $error->level,
@@ -197,6 +237,54 @@ class DashboardController extends Controller
             }),
             'timestamp' => now()->toIso8601String(),
             'count' => $errors->count(),
+        ]);
+    }
+
+    /**
+     * Get recent errors from files
+     */
+    protected function recentFromFiles(?string $since)
+    {
+        $errors = LogFileReader::getRecent($since);
+
+        return response()->json([
+            'data' => array_map(function ($error) {
+                return [
+                    'id' => $error['id'] ?? uniqid('file_'),
+                    'level' => $error['level'] ?? 'error',
+                    'message' => \Illuminate\Support\Str::limit($error['message'] ?? '', 200),
+                    'file' => $error['file'] ?? 'unknown',
+                    'line' => $error['line'] ?? 0,
+                    'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
+                ];
+            }, $errors),
+            'timestamp' => now()->toIso8601String(),
+            'count' => count($errors),
+            'source' => 'files',
+        ]);
+    }
+
+    /**
+     * Get recent errors from cache (when database storage is disabled).
+     */
+    protected function recentFromCache(?string $since)
+    {
+        $errors = $since ? ErrorCache::getRecent($since) : ErrorCache::getAll();
+
+        return response()->json([
+            'data' => array_map(function ($error) {
+                return [
+                    'id' => $error['id'] ?? uniqid(),
+                    'level' => $error['level'] ?? 'error',
+                    'message' => \Illuminate\Support\Str::limit($error['message'] ?? '', 200),
+                    'file' => $error['file'] ?? 'unknown',
+                    'line' => $error['line'] ?? 0,
+                    'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
+                ];
+            }, $errors),
+            'timestamp' => now()->toIso8601String(),
+            'count' => count($errors),
+            'mode' => 'cache',
         ]);
     }
 }

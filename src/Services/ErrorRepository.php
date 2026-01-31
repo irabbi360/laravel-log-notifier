@@ -7,10 +7,16 @@ use Irabbi360\LaravelLogNotifier\Models\LogError;
 class ErrorRepository
 {
     /**
-     * Store an error in the database.
+     * Store an error in the database or cache.
      */
     public function store(array $error): ?LogError
     {
+        // If database storage is disabled, use cache instead
+        if (!config('log-notifier.store_in_database', true)) {
+            $this->storeCached($error);
+            return null;
+        }
+
         $hash = $this->generateHash($error);
 
         // Check for deduplication
@@ -42,6 +48,24 @@ class ErrorRepository
         $logError->wasRecentlyCreated = true;
 
         return $logError;
+    }
+
+    /**
+     * Store error in cache (when database is disabled)
+     */
+    protected function storeCached(array $error): void
+    {
+        ErrorCache::store([
+            'id' => uniqid(),
+            'level' => $error['level'],
+            'message' => $error['message'],
+            'trace' => $error['trace'],
+            'file' => $error['file'],
+            'line' => $error['line'],
+            'environment' => $error['environment'] ?? config('app.env'),
+            'context' => $error['context'] ?? null,
+            'occurred_at' => ($error['occurred_at'] ?? now())->toIso8601String(),
+        ]);
     }
 
     /**
