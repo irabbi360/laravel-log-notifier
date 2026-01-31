@@ -83,9 +83,9 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
             );
         }
 
-        // Register LogWatcher facade
-        $this->app->singleton('log-watcher', function ($app) {
-            return new \Irabbi360\LaravelLogNotifier\LogWatcher();
+        // Register LogNotifierWatcher facade
+        $this->app->singleton('log-notifier-watcher', function ($app) {
+            return new \Irabbi360\LaravelLogNotifier\LogNotifierWatcher();
         });
 
         if (! config('log-notifier.enabled', true)) {
