@@ -81,6 +81,7 @@ class ErrorCache
     {
         $count = count(Cache::get(self::CACHE_KEY, []));
         Cache::forget(self::CACHE_KEY);
+
         return $count;
     }
 

@@ -74,7 +74,7 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         // Register facade alias for easy access
-        if (!class_exists('LogNotifier')) {
+        if (! class_exists('LogNotifier')) {
             class_alias(
                 \Irabbi360\LaravelLogNotifier\Facades\LaravelLogNotifier::class,
                 'LogNotifier'

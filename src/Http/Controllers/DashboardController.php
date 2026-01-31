@@ -4,8 +4,8 @@ namespace Irabbi360\LaravelLogNotifier\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
 use Irabbi360\LaravelLogNotifier\Services\ErrorCache;
+use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
 use Irabbi360\LaravelLogNotifier\Services\LogFileReader;
 
 class DashboardController extends Controller
@@ -33,7 +33,7 @@ class DashboardController extends Controller
 
         // Determine data source
         $useDatabase = config('log-notifier.store_in_database', true);
-        
+
         if ($useDatabase) {
             // Read from database
             $errors = $this->repository->getErrors(array_filter($filters), 20);

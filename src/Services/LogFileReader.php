@@ -3,7 +3,6 @@
 namespace Irabbi360\LaravelLogNotifier\Services;
 
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\File;
 
 class LogFileReader
@@ -27,11 +26,13 @@ class LogFileReader
         usort($errors, function ($a, $b) {
             $timeA = Carbon::parse($a['occurred_at'] ?? now())->timestamp;
             $timeB = Carbon::parse($b['occurred_at'] ?? now())->timestamp;
+
             return $timeB <=> $timeA;
         });
 
         // Paginate
         $offset = 0; // Could be improved with request()->get('page')
+
         return array_slice($errors, $offset, $perPage);
     }
 
@@ -55,6 +56,7 @@ class LogFileReader
         usort($errors, function ($a, $b) {
             $timeA = Carbon::parse($a['occurred_at'] ?? now())->timestamp;
             $timeB = Carbon::parse($b['occurred_at'] ?? now())->timestamp;
+
             return $timeB <=> $timeA;
         });
 
@@ -70,14 +72,14 @@ class LogFileReader
             return [$path];
         }
 
-        if (!is_dir($path)) {
+        if (! is_dir($path)) {
             return [];
         }
 
         $scanAll = config('log-notifier.scan_all_logs', true);
 
         if ($scanAll) {
-            return glob($path . '/*.log') ?: [];
+            return glob($path.'/*.log') ?: [];
         }
 
         return [];
@@ -88,7 +90,7 @@ class LogFileReader
      */
     protected static function parseLogFile(string $filePath, array $filters = [], ?Carbon $since = null): array
     {
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             return [];
         }
 
@@ -125,12 +127,12 @@ class LogFileReader
                 ];
 
                 // Apply filters
-                if (!self::matchesFilters($currentError, $filters, $since)) {
+                if (! self::matchesFilters($currentError, $filters, $since)) {
                     $currentError = null;
                 }
             } elseif ($currentError && trim($line)) {
                 // Append to trace
-                $currentError['trace'] .= $line . "\n";
+                $currentError['trace'] .= $line."\n";
             }
         }
 
@@ -204,7 +206,7 @@ class LogFileReader
     protected static function extractLine(string $line): int
     {
         if (preg_match('/(\S+\.php):(\d+)/', $line, $matches)) {
-            return (int)$matches[2];
+            return (int) $matches[2];
         }
 
         return 0;
@@ -233,12 +235,12 @@ class LogFileReader
     protected static function matchesFilters(array $error, array $filters, ?Carbon $since): bool
     {
         // Check level filter
-        if (!empty($filters['level']) && $error['level'] !== $filters['level']) {
+        if (! empty($filters['level']) && $error['level'] !== $filters['level']) {
             return false;
         }
 
         // Check search filter
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = strtolower($filters['search']);
             $message = strtolower($error['message']);
 

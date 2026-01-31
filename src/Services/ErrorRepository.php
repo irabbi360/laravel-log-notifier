@@ -12,8 +12,9 @@ class ErrorRepository
     public function store(array $error): ?LogError
     {
         // If database storage is disabled, use cache instead
-        if (!config('log-notifier.store_in_database', true)) {
+        if (! config('log-notifier.store_in_database', true)) {
             $this->storeCached($error);
+
             return null;
         }
 
