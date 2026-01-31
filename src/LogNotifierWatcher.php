@@ -2,8 +2,8 @@
 
 namespace Irabbi360\LaravelLogNotifier;
 
-use Irabbi360\LaravelLogNotifier\Support\ExceptionTracker;
 use Illuminate\Foundation\Configuration\Exceptions;
+use Irabbi360\LaravelLogNotifier\Support\ExceptionTracker;
 use Throwable;
 
 class LogNotifierWatcher
