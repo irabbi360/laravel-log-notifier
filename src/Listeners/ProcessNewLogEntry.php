@@ -31,6 +31,14 @@ class ProcessNewLogEntry
         // Get configured levels to monitor
         $levels = config('log-notifier.levels', ['error', 'critical', 'alert', 'emergency']);
 
+        // Debug: Log that listener was triggered
+        if (config('log-notifier.debug', false)) {
+            \Illuminate\Support\Facades\Log::info('[Log Notifier] Listener triggered', [
+                'event_level' => $event->level,
+                'is_monitored' => in_array($event->level, $levels),
+            ]);
+        }
+
         // Check if this log message is at a level we're monitoring
         if (! in_array($event->level, $levels)) {
             return;
@@ -51,8 +59,16 @@ class ProcessNewLogEntry
                 if (config('log-notifier.debug', false)) {
                     \Illuminate\Support\Facades\Log::info('[Log Notifier] Error captured', [
                         'level' => $event->level,
+                        'message' => $errorData['message'] ?? 'unknown',
                         'file' => $errorData['file'] ?? 'unknown',
                         'line' => $errorData['line'] ?? 0,
+                    ]);
+                }
+            } else {
+                if (config('log-notifier.debug', false)) {
+                    \Illuminate\Support\Facades\Log::warning('[Log Notifier] Failed to extract error data', [
+                        'level' => $event->level,
+                        'message_preview' => substr($formatted, 0, 100),
                     ]);
                 }
             }
@@ -69,20 +85,32 @@ class ProcessNewLogEntry
 
     /**
      * Extract error data from log message.
+     * More flexible parsing - works with any log format.
      */
     protected function extractErrorData(string $message, string $level): ?array
     {
-        // Try to extract stack trace and file information
-        preg_match('/Stack trace:.*?(?=\[|$)/s', $message, $traceMatch);
-        preg_match('/^.*?in\s+(.+?):(\d+)/', $message, $fileMatch);
-
-        // Basic parsing - if we can't find file info, skip it
-        if (empty($fileMatch)) {
+        // Don't skip empty messages - capture them too
+        if (empty(trim($message))) {
             return null;
         }
 
-        $file = $fileMatch[1] ?? 'Unknown';
-        $line = (int) ($fileMatch[2] ?? 0);
+        // Extract stack trace if available
+        preg_match('/Stack trace:.*?(?=\[|$)/s', $message, $traceMatch);
+
+        // Try multiple patterns to extract file and line number
+        $file = 'Unknown';
+        $line = 0;
+
+        // Pattern 1: "in /path/to/file.php:123"
+        if (preg_match('/in\s+(.+?):(\d+)/i', $message, $fileMatch)) {
+            $file = trim($fileMatch[1]);
+            $line = (int) $fileMatch[2];
+        }
+        // Pattern 2: "/path/to/file.php:123"
+        elseif (preg_match('/(\/[^\s:]+):(\d+)/', $message, $fileMatch)) {
+            $file = trim($fileMatch[1]);
+            $line = (int) $fileMatch[2];
+        }
 
         // Extract first line as message
         $lines = explode("\n", $message);
@@ -90,13 +118,19 @@ class ProcessNewLogEntry
 
         // Remove log level prefix if present
         $errorMessage = preg_replace('/^\[.*?\]\s+/', '', $errorMessage);
+        $errorMessage = preg_replace('/^(emergency|alert|critical|error|warning|notice|info|debug):\s+/i', '', $errorMessage);
+
+        // Limit message length
+        if (strlen($errorMessage) > 500) {
+            $errorMessage = substr($errorMessage, 0, 500) . '...';
+        }
 
         // Generate hash for deduplication
-        $hash = sha1($errorMessage.$file.$line);
+        $hash = sha1($errorMessage . $file . $line);
 
         return [
             'level' => $level,
-            'message' => substr($errorMessage, 0, 500), // Limit to 500 chars
+            'message' => $errorMessage,
             'trace' => $traceMatch[0] ?? null,
             'file' => $file,
             'line' => $line,

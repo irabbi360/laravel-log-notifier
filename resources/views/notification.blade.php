@@ -263,12 +263,18 @@ const GlobalToast = {
 
         // Connect to Server-Sent Events stream
         this.eventSource = new EventSource(`${this.dashboardRoute}/api/stream`);
+        let lastEventId = 0;
 
         // Handle new errors
         this.eventSource.addEventListener('message', (event) => {
             try {
-                const error = JSON.parse(event.data);
-                this.displayError(error);
+                if (event.data && event.data !== ': Connected\n\n') {
+                    const error = JSON.parse(event.data);
+                    this.displayError(error);
+                    if (event.lastEventId) {
+                        lastEventId = parseInt(event.lastEventId);
+                    }
+                }
             } catch (e) {
                 // Skip non-JSON messages (like heartbeats)
             }
@@ -278,21 +284,19 @@ const GlobalToast = {
         this.eventSource.addEventListener('error', (e) => {
             console.warn('[Log Notifier] SSE connection error:', e);
             this.eventSource.close();
-            // Attempt to reconnect after 5 seconds
-            setTimeout(() => {
-                if (this.enabled) {
-                    this.startSSE();
-                }
-            }, 5000);
+            // Reconnect immediately after error (server closed connection)
+            if (this.enabled) {
+                setTimeout(() => this.startSSE(), 1000);
+            }
         });
 
         // Handle stream close
         this.eventSource.addEventListener('close', (e) => {
-            console.log('[Log Notifier] SSE stream closed');
+            console.log('[Log Notifier] SSE stream closed, reconnecting...');
             this.eventSource.close();
-            // Attempt to reconnect
+            // Reconnect immediately
             if (this.enabled) {
-                setTimeout(() => this.startSSE(), 5000);
+                setTimeout(() => this.startSSE(), 1000);
             }
         });
     },
