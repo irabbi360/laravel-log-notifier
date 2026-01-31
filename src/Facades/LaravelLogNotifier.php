@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static void resetPosition()
  * @method static \Irabbi360\LaravelLogNotifier\Services\LogWatcher watcher()
  * @method static \Irabbi360\LaravelLogNotifier\Services\ErrorRepository repository()
+ * @method static string notification()
  *
  * @see \Irabbi360\LaravelLogNotifier\LaravelLogNotifier
  */

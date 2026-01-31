@@ -16,6 +16,7 @@ It helps you stay instantly informed about production issues without constantly 
 - 🔍 **Automatic Log Monitoring** - Scans Laravel log files for errors
 - 🚨 **Real-time Alerts** - Detects error, critical, alert & emergency logs
 - 🍞 **Toast Notifications** - In-app notifications that appear in the browser (no permissions needed)
+- 🌍 **Global Notifications** - Show alerts across your entire app, not just dashboard
 - 🔔 **Sound Alerts** - Optional beep sound for critical errors
 - 🖱️ **Click to View** - Navigate directly to error details from notifications
 - ⚙️ **Fully Configurable** - Customize via `config/log-notifier.php`
@@ -145,12 +146,28 @@ LOG_NOTIFIER_SCAN_ALL_LOGS=false
 
 ### Enable Toast Notifications
 
-1. Visit the dashboard
+**Dashboard Only (Default)**
+
+1. Visit the dashboard: `/log-notifier`
 2. Click the bell icon (🔔) in the top-right navbar
 3. Notifications will appear in real-time as errors occur
 4. Click any notification to jump to error details
 
 No browser permissions needed! Settings are saved in localStorage.
+
+### Global Notifications Across Your App
+
+Want error alerts to appear **everywhere in your application**, not just the dashboard?
+
+Add this **single line** to your main layout:
+
+```blade
+{!! LogNotifier::notification() !!}
+```
+
+Done! Errors will now show as toast notifications across your entire app.
+
+See [GLOBAL_TOAST_SETUP.md](GLOBAL_TOAST_SETUP.md) for detailed setup instructions.
 
 ### Watch for Errors
 

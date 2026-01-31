@@ -115,4 +115,12 @@ class LaravelLogNotifier
     {
         return $this->repository;
     }
+
+    /**
+     * Render the global notification component.
+     */
+    public function notification(): string
+    {
+        return view('log-notifier::notification')->render();
+    }
 }
