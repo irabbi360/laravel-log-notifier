@@ -259,8 +259,8 @@
                         const response = await fetch(`{{ route('log-notifier.api.recent') }}?since=${encodeURIComponent(this.lastChecked)}`);
                         const data = await response.json();
                         
-                        if (data.errors && data.errors.length > 0) {
-                            data.errors.forEach(error => {
+                        if (data.data && data.data.length > 0) {
+                            data.data.forEach(error => {
                                 Toast.show(
                                     error.message.substring(0, 150) + (error.message.length > 150 ? '...' : ''),
                                     error.level,
@@ -278,6 +278,9 @@
             };
         }
     </script>
+
+    <!-- Global Log Notifier Toast Notifications -->
+    {!! \Irabbi360\LaravelLogNotifier\Facades\LaravelLogNotifier::notification() !!}
 
     @stack('scripts')
 </body>

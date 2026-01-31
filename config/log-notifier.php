@@ -121,6 +121,47 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Use Server-Sent Events (SSE) for Real-Time Alerts
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, uses Server-Sent Events for real-time error streaming
+    | instead of polling every N seconds. Provides instant alerts.
+    |
+    | Benefits:
+    | - Instant notifications when errors occur
+    | - Lower server load (no constant polling)
+    | - One-way communication (lighter than WebSockets)
+    |
+    | If disabled, falls back to polling every 'check_interval' seconds.
+    |
+    */
+    'use_sse' => env('LOG_NOTIFIER_USE_SSE', true),
+
+    /*
+    |--------------------------------------------------------------------------
+    | SSE Check Interval (Seconds)
+    |--------------------------------------------------------------------------
+    |
+    | How often the SSE endpoint checks for new errors.
+    | Only used when use_sse is enabled.
+    |
+    */
+    'sse_check_interval' => env('LOG_NOTIFIER_SSE_CHECK_INTERVAL', 1),
+
+    /*
+    |--------------------------------------------------------------------------
+    | SSE Max Duration (Seconds)
+    |--------------------------------------------------------------------------
+    |
+    | How long an SSE connection stays open before automatically closing.
+    | Client will reconnect automatically.
+    | Prevents indefinite connections.
+    |
+    */
+    'sse_max_duration' => env('LOG_NOTIFIER_SSE_MAX_DURATION', 300),
+
+    /*
+    |--------------------------------------------------------------------------
     | Deduplication
     |--------------------------------------------------------------------------
     |
@@ -186,7 +227,7 @@ return [
     | Set to null or empty array to disable authentication.
     |
     */
-    'auth_middleware' => ['auth'],
+    'auth_middleware' => [], // 'auth'
 
     /*
     |--------------------------------------------------------------------------

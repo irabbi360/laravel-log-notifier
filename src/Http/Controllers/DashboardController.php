@@ -189,33 +189,145 @@ class DashboardController extends Controller
 
     /**
      * Get recent errors since a given timestamp (for toast notifications).
-     * Works with database, cache, or file sources based on configuration.
+     * Routes to appropriate source based on configuration.
      */
     public function recent(Request $request)
     {
         $since = $request->get('since');
+        return $this->recentFromDatabase($since);
+    }
+
+    /**
+     * Server-Sent Events stream for real-time alerts.
+     * Clients connect via EventSource and receive alerts without polling.
+     */
+    public function stream(Request $request)
+    {
+        // Set response headers for Server-Sent Events
+        return response()->stream(function () {
+            // Set headers for SSE
+            header('Content-Type: text/event-stream');
+            header('Cache-Control: no-cache');
+            header('Connection: keep-alive');
+            header('X-Accel-Buffering: no');
+
+            // Send a comment to keep connection alive
+            echo ": Stream started\n\n";
+            flush();
+
+            $lastEventId = $request->header('Last-Event-ID', 0);
+            $checkInterval = config('log-notifier.sse_check_interval', 1); // 1 second
+            $maxDuration = config('log-notifier.sse_max_duration', 300); // 5 minutes
+            $startTime = time();
+
+            while (time() - $startTime < $maxDuration) {
+                // Get recent errors since last check
+                $errors = $this->getStreamErrors($lastEventId);
+
+                if (! empty($errors)) {
+                    foreach ($errors as $error) {
+                        // Send as SSE event
+                        echo "id: {$error['id']}\n";
+                        echo "data: " . json_encode($error) . "\n\n";
+                        flush();
+
+                        $lastEventId = max($lastEventId, (int) $error['id']);
+                    }
+                }
+
+                // Keep connection alive with heartbeat
+                echo ": ping\n\n";
+                flush();
+
+                // Sleep before next check
+                sleep($checkInterval);
+
+                // Check if client disconnected
+                if (connection_aborted()) {
+                    break;
+                }
+            }
+
+            // Connection timeout
+            echo "event: close\n";
+            echo "data: Connection closed\n\n";
+            flush();
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+        ]);
+    }
+
+    /**
+     * Get errors for streaming (newer than lastEventId)
+     */
+    protected function getStreamErrors($lastEventId = 0): array
+    {
         $useDatabase = config('log-notifier.store_in_database', true);
 
         if ($useDatabase) {
-            return $this->recentFromDatabase($since);
+            return \Irabbi360\LaravelLogNotifier\Models\LogError::query()
+                ->where('id', '>', $lastEventId)
+                ->orderBy('id', 'asc')
+                ->limit(10)
+                ->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at'])
+                ->map(function ($error) {
+                    return [
+                        'id' => $error->id,
+                        'level' => $error->level,
+                        'message' => \Illuminate\Support\Str::limit($error->message, 200),
+                        'file' => $error->file,
+                        'line' => $error->line,
+                        'occurred_at' => $error->last_occurred_at->toIso8601String(),
+                    ];
+                })
+                ->toArray();
+        } else {
+            // For file mode, use cache with timestamps
+            $errors = ErrorCache::getAll();
+            
+            return array_map(function ($error) {
+                return [
+                    'id' => $error['id'] ?? uniqid(),
+                    'level' => $error['level'] ?? 'error',
+                    'message' => \Illuminate\Support\Str::limit($error['message'] ?? '', 200),
+                    'file' => $error['file'] ?? 'unknown',
+                    'line' => $error['line'] ?? 0,
+                    'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
+                ];
+            }, array_slice($errors, 0, 10));
+        }
+    }
+
+    /**
+     * Get recent errors from configured data source (database or files).
+     * Respects LOG_NOTIFIER_STORE_IN_DB configuration.
+     */
+    protected function recentFromDatabase(?string $since)
+    {
+        $useDatabase = config('log-notifier.store_in_database', true);
+        
+        if ($useDatabase) {
+            return $this->getRecentFromDatabaseStorage($since);
         } else {
             return $this->recentFromFiles($since);
         }
     }
 
     /**
-     * Get recent errors from database
+     * Get recent errors from database storage
      */
-    protected function recentFromDatabase(?string $since)
+    protected function getRecentFromDatabaseStorage(?string $since)
     {
         $query = \Irabbi360\LaravelLogNotifier\Models\LogError::query()
-            ->where('is_resolved', false)
             ->orderBy('last_occurred_at', 'desc')
-            ->limit(10);
+            ->limit(50);
 
         if ($since) {
             try {
                 $sinceDate = \Carbon\Carbon::parse($since);
+                // Return errors that occurred after the last check
                 $query->where('last_occurred_at', '>', $sinceDate);
             } catch (\Exception $e) {
                 // Invalid date, ignore filter

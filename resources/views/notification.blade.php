@@ -156,9 +156,11 @@
 const GlobalToast = {
     container: null,
     lastChecked: new Date().toISOString(),
+    eventSource: null,
     pollInterval: null,
     enabled: localStorage.getItem('logNotifierToasts') !== 'false',
     dashboardRoute: '{{ config('log-notifier.dashboard_route', '/log-notifier') }}',
+    useSSE: {{ config('log-notifier.use_sse', true) ? 'true' : 'false' }},
     
     init() {
         // Create container if not exists
@@ -181,13 +183,23 @@ const GlobalToast = {
             document.body.appendChild(toggle);
         }
 
-        // Start polling for new errors
+        // Start real-time stream or polling
         if (this.enabled) {
-            this.startPolling();
+            if (this.useSSE) {
+                this.startSSE();
+            } else {
+                this.startPolling();
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            this.startPolling();
+            if (this.enabled) {
+                if (this.useSSE) {
+                    this.startSSE();
+                } else {
+                    this.startPolling();
+                }
+            }
         });
     },
 
@@ -236,6 +248,79 @@ const GlobalToast = {
         }
 
         return toast;
+    },
+
+    removeToast(toast) {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 300);
+    },
+
+    startSSE() {
+        // Close existing connection if any
+        if (this.eventSource) {
+            this.eventSource.close();
+        }
+
+        // Connect to Server-Sent Events stream
+        this.eventSource = new EventSource(`${this.dashboardRoute}/api/stream`);
+
+        // Handle new errors
+        this.eventSource.addEventListener('message', (event) => {
+            try {
+                const error = JSON.parse(event.data);
+                this.displayError(error);
+            } catch (e) {
+                // Skip non-JSON messages (like heartbeats)
+            }
+        });
+
+        // Handle errors
+        this.eventSource.addEventListener('error', (e) => {
+            console.warn('[Log Notifier] SSE connection error:', e);
+            this.eventSource.close();
+            // Fallback to polling if SSE fails
+            if (this.enabled && !this.pollInterval) {
+                this.startPolling();
+            }
+        });
+
+        // Handle stream close
+        this.eventSource.addEventListener('close', (e) => {
+            console.log('[Log Notifier] SSE stream closed');
+            this.eventSource.close();
+        });
+    },
+
+    stopSSE() {
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+    },
+
+    displayError(error) {
+        const typeMap = {
+            'emergency': 'emergency',
+            'alert': 'alert',
+            'critical': 'critical',
+            'error': 'error',
+            'warning': 'warning',
+            'notice': 'info',
+            'info': 'info',
+            'debug': 'info'
+        };
+
+        const type = typeMap[error.level] || 'info';
+        const message = error.message.substring(0, 100);
+
+        this.show(
+            message,
+            type,
+            5000,
+            () => {
+                window.location.href = `${this.dashboardRoute}/errors/${error.id}`;
+            }
+        );
     },
 
     removeToast(toast) {
@@ -309,12 +394,22 @@ const GlobalToast = {
             toggle.classList.remove('disabled');
             toggle.title = 'Notifications enabled';
             this.show('Notifications enabled ✓', 'success', 3000);
-            this.startPolling();
+            
+            if (this.useSSE) {
+                this.startSSE();
+            } else {
+                this.startPolling();
+            }
         } else {
             toggle.classList.add('disabled');
             toggle.title = 'Notifications disabled';
             this.show('Notifications disabled', 'info', 2000);
-            this.stopPolling();
+            
+            if (this.useSSE) {
+                this.stopSSE();
+            } else {
+                this.stopPolling();
+            }
         }
     },
 

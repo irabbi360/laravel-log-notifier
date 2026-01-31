@@ -28,7 +28,8 @@ Route::prefix($dashboardRoute)
         Route::delete('/errors/{id}', [DashboardController::class, 'destroy'])->name('errors.destroy');
         Route::post('/errors/bulk', [DashboardController::class, 'bulkAction'])->name('errors.bulk');
 
-        // API routes for toast polling
+        // API routes for toast polling and streaming
         Route::get('/api/statistics', [DashboardController::class, 'statistics'])->name('api.statistics');
         Route::get('/api/recent', [DashboardController::class, 'recent'])->name('api.recent');
+        Route::get('/api/stream', [DashboardController::class, 'stream'])->name('api.stream');
     });

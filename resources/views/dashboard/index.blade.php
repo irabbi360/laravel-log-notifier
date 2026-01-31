@@ -4,6 +4,24 @@
 
 @section('content')
 <div x-data="dashboard()" x-init="init()">
+    <!-- Data Source Notice -->
+    @if(($source ?? 'database') === 'files')
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zm-11-1a1 1 0 11-2 0 1 1 0 012 0z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-blue-700">
+                        <strong>File Mode:</strong> Showing errors parsed from log files. Edit and delete actions are not available in this mode.
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-6">
@@ -15,7 +33,7 @@
                 </div>
                 <div class="ml-4">
                     <p class="text-sm font-medium text-gray-500">Total Errors</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ $statistics['total'] ?? 0 }}</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $statistics['total_errors'] ?? $statistics['total'] ?? 0 }}</p>
                 </div>
             </div>
         </div>
@@ -28,8 +46,8 @@
                     </svg>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Unresolved</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ $statistics['unresolved'] ?? 0 }}</p>
+                    <p class="text-sm font-medium text-gray-500">This Week</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $statistics['this_week'] ?? $statistics['unresolved'] ?? 0 }}</p>
                 </div>
             </div>
         </div>
@@ -42,8 +60,8 @@
                     </svg>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Resolved</p>
-                    <p class="text-2xl font-semibold text-gray-900">{{ $statistics['resolved'] ?? 0 }}</p>
+                    <p class="text-sm font-medium text-gray-500">Today</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ $statistics['today'] ?? 0 }}</p>
                 </div>
             </div>
         </div>
@@ -56,7 +74,7 @@
                     </svg>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm font-medium text-gray-500">Last 7 Days</p>
+                    <p class="text-sm font-medium text-gray-500">By Level</p>
                     <div class="flex space-x-1 mt-1">
                         @foreach(($statistics['by_level'] ?? []) as $level => $count)
                             <span class="text-xs px-2 py-1 rounded-full 
@@ -152,86 +170,112 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left">
-                            <input 
-                                type="checkbox" 
-                                @change="toggleSelectAll($event)"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            >
-                        </th>
+                        @if(($source ?? 'database') === 'database')
+                            <th class="px-4 py-3 text-left">
+                                <input 
+                                    type="checkbox" 
+                                    @change="toggleSelectAll($event)"
+                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                >
+                            </th>
+                        @endif
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Level</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Occurred</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        @if(($source ?? 'database') === 'database')
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+                        @endif
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Occurred</th>
+                        @if(($source ?? 'database') === 'database')
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($errors as $error)
+                        @php
+                            $isModel = is_object($error) && method_exists($error, 'getAttribute');
+                            $errorId = $isModel ? $error->id : ($error['id'] ?? uniqid());
+                            $level = $isModel ? $error->level : ($error['level'] ?? 'error');
+                            $message = $isModel ? $error->excerpt : substr($error['message'] ?? '', 0, 100);
+                            $location = $isModel ? $error->location : (($error['file'] ?? 'unknown') . ':' . ($error['line'] ?? '0'));
+                            $occurredAt = $isModel ? $error->last_occurred_at->diffForHumans() : \Carbon\Carbon::parse($error['occurred_at'] ?? now())->diffForHumans();
+                            $occurrenceCount = $isModel ? $error->occurrence_count : 1;
+                            $isResolved = $isModel ? $error->is_resolved : false;
+                        @endphp
                         <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-4">
-                                <input 
-                                    type="checkbox" 
-                                    value="{{ $error->id }}"
-                                    x-model="selectedErrors"
-                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                >
-                            </td>
+                            @if(($source ?? 'database') === 'database')
+                                <td class="px-4 py-4">
+                                    <input 
+                                        type="checkbox" 
+                                        value="{{ $errorId }}"
+                                        x-model="selectedErrors"
+                                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    >
+                                </td>
+                            @endif
                             <td class="px-4 py-4 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    @if($error->level === 'emergency' || $error->level === 'critical') bg-red-100 text-red-800
-                                    @elseif($error->level === 'error') bg-yellow-100 text-yellow-800
-                                    @elseif($error->level === 'alert') bg-orange-100 text-orange-800
+                                    @if($level === 'emergency' || $level === 'critical') bg-red-100 text-red-800
+                                    @elseif($level === 'error') bg-yellow-100 text-yellow-800
+                                    @elseif($level === 'alert') bg-orange-100 text-orange-800
                                     @else bg-gray-100 text-gray-800
                                     @endif">
-                                    {{ strtoupper($error->level) }}
+                                    {{ strtoupper($level) }}
                                 </span>
                             </td>
                             <td class="px-4 py-4">
-                                <a href="{{ route('log-notifier.errors.show', $error->id) }}" class="text-gray-900 hover:text-blue-600">
-                                    <div class="max-w-md truncate">{{ $error->excerpt }}</div>
-                                </a>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                                {{ Str::limit($error->location, 40) }}
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $error->occurrence_count }}
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $error->last_occurred_at->diffForHumans() }}
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap">
-                                @if($error->is_resolved)
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        Resolved
-                                    </span>
+                                @if(($source ?? 'database') === 'database')
+                                    <a href="{{ route('log-notifier.errors.show', $errorId) }}" class="text-gray-900 hover:text-blue-600">
+                                        <div class="max-w-md truncate">{{ $message }}</div>
+                                    </a>
                                 @else
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        Open
-                                    </span>
+                                    <div class="max-w-md truncate">{{ $message }}</div>
                                 @endif
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm">
-                                <div class="flex space-x-2">
-                                    <a href="{{ route('log-notifier.errors.show', $error->id) }}" class="text-blue-600 hover:text-blue-800">
-                                        View
-                                    </a>
-                                    @if(!$error->is_resolved)
-                                        <form action="{{ route('log-notifier.errors.resolve', $error->id) }}" method="POST" class="inline">
-                                            @csrf
-                                            <button type="submit" class="text-green-600 hover:text-green-800">Resolve</button>
-                                        </form>
-                                    @else
-                                        <form action="{{ route('log-notifier.errors.unresolve', $error->id) }}" method="POST" class="inline">
-                                            @csrf
-                                            <button type="submit" class="text-yellow-600 hover:text-yellow-800">Reopen</button>
-                                        </form>
-                                    @endif
-                                </div>
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
+                                {{ Str::limit($location, 40) }}
                             </td>
+                            @if(($source ?? 'database') === 'database')
+                                <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ $occurrenceCount }}
+                                </td>
+                            @endif
+                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ $occurredAt }}
+                            </td>
+                            @if(($source ?? 'database') === 'database')
+                                <td class="px-4 py-4 whitespace-nowrap">
+                                    @if($isResolved)
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            Resolved
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            Open
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-4 whitespace-nowrap text-sm">
+                                    <div class="flex space-x-2">
+                                        <a href="{{ route('log-notifier.errors.show', $errorId) }}" class="text-blue-600 hover:text-blue-800">
+                                            View
+                                        </a>
+                                        @if(!$isResolved)
+                                            <form action="{{ route('log-notifier.errors.resolve', $errorId) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-green-600 hover:text-green-800">Resolve</button>
+                                            </form>
+                                        @else
+                                            <form action="{{ route('log-notifier.errors.unresolve', $errorId) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="text-yellow-600 hover:text-yellow-800">Reopen</button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                </td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
@@ -250,7 +294,7 @@
             </table>
         </div>
         
-        @if($errors->hasPages())
+        @if(is_object($errors) && method_exists($errors, 'hasPages') && $errors->hasPages())
             <div class="px-4 py-3 border-t border-gray-200">
                 {{ $errors->withQueryString()->links() }}
             </div>
@@ -270,7 +314,13 @@
 
             toggleSelectAll(event) {
                 if (event.target.checked) {
-                    this.selectedErrors = @json($errors->pluck('id'));
+                    this.selectedErrors = @json(collect($errors)->map(function($error) {
+                        if (is_array($error)) {
+                            return $error['id'] ?? null;
+                        } else {
+                            return $error->id ?? null;
+                        }
+                    })->filter()->values()->all());
                 } else {
                     this.selectedErrors = [];
                 }
