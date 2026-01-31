@@ -241,26 +241,31 @@ class DashboardController extends Controller
                 }
             }
 
-            // Send heartbeat and close after a few seconds
-            // Client will reconnect automatically
-            $iterations = 0;
-            $maxIterations = 3; // 30 seconds / 10 = 3 iterations max to stay under PHP timeout
+            // Keep connection alive for 25 seconds (safely under 30s PHP timeout)
+            // Send heartbeat every 5 seconds
+            $startTime = time();
+            $maxDuration = 25; // seconds
+            $heartbeatInterval = 5; // seconds
+            $lastHeartbeat = $startTime;
 
-            while ($iterations < $maxIterations) {
-                echo ": ping\n\n";
-                flush();
-
+            while ((time() - $startTime) < $maxDuration) {
                 if (connection_aborted()) {
                     break;
                 }
 
-                usleep(500000); // 0.5 seconds instead of sleep(10)
-                $iterations++;
+                $currentTime = time();
+                if ($currentTime - $lastHeartbeat >= $heartbeatInterval) {
+                    echo ": ping\n\n";
+                    flush();
+                    $lastHeartbeat = $currentTime;
+                }
+
+                usleep(100000); // 0.1 seconds - small sleep to reduce CPU usage
             }
 
-            // Close connection
+            // Close connection gracefully
             echo "event: close\n";
-            echo "data: Connection closed\n\n";
+            echo "data: Connection timeout\n\n";
             flush();
         } catch (\Exception $e) {
             // Log error but don't output it (would break SSE protocol)

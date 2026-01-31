@@ -263,40 +263,37 @@ const GlobalToast = {
 
         // Connect to Server-Sent Events stream
         this.eventSource = new EventSource(`${this.dashboardRoute}/api/stream`);
-        let lastEventId = 0;
 
         // Handle new errors
         this.eventSource.addEventListener('message', (event) => {
             try {
-                if (event.data && event.data !== ': Connected\n\n') {
+                // Skip connection messages and heartbeats (they start with :)
+                if (event.data && !event.data.startsWith(':')) {
                     const error = JSON.parse(event.data);
                     this.displayError(error);
-                    if (event.lastEventId) {
-                        lastEventId = parseInt(event.lastEventId);
-                    }
                 }
             } catch (e) {
-                // Skip non-JSON messages (like heartbeats)
+                // Silently skip non-JSON messages (like heartbeats)
             }
         });
 
         // Handle errors
         this.eventSource.addEventListener('error', (e) => {
-            console.warn('[Log Notifier] SSE connection error:', e);
+            console.warn('[Log Notifier] SSE connection closed');
             this.eventSource.close();
-            // Reconnect immediately after error (server closed connection)
+            // Reconnect after 3 seconds (longer interval for normal close)
             if (this.enabled) {
-                setTimeout(() => this.startSSE(), 1000);
+                setTimeout(() => this.startSSE(), 3000);
             }
         });
 
         // Handle stream close
         this.eventSource.addEventListener('close', (e) => {
-            console.log('[Log Notifier] SSE stream closed, reconnecting...');
+            console.log('[Log Notifier] Server closed connection, reconnecting...');
             this.eventSource.close();
-            // Reconnect immediately
+            // Reconnect after brief delay (server is closing normally)
             if (this.enabled) {
-                setTimeout(() => this.startSSE(), 1000);
+                setTimeout(() => this.startSSE(), 2000);
             }
         });
     },

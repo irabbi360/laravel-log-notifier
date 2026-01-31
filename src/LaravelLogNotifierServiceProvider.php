@@ -81,9 +81,8 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
             );
         }
 
-        // Register event listener for real-time log processing
+        // Register event listener for LogWritten event
         if (config('log-notifier.enabled', true) && config('log-notifier.use_event_listener', true)) {
-            // Register as closure for better container resolution
             $this->app['events']->listen(
                 LogWritten::class,
                 function (LogWritten $event) {
@@ -91,6 +90,67 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
                     $listener->handle($event);
                 }
             );
+        }
+
+        // Add Monolog handler for guaranteed capture of all logs
+        if (config('log-notifier.enabled', true)) {
+            try {
+                $logger = $this->app->make('log');
+                
+                if ($logger && method_exists($logger, 'getLogger')) {
+                    $monologLogger = $logger->getLogger();
+                    $app = $this->app;
+                    
+                    // Create handler - direct instantiation to avoid variable scope issues
+                    $handler = new \Monolog\Handler\AbstractProcessingHandler();
+                    
+                    // Override write method
+                    $handlerObj = new class($app) extends \Monolog\Handler\AbstractProcessingHandler {
+                        private $app;
+                        
+                        public function __construct($app)
+                        {
+                            $this->app = $app;
+                            parent::__construct();
+                        }
+                        
+                        protected function write(\Monolog\LogRecord $record): void
+                        {
+                            if (! config('log-notifier.enabled', true)) {
+                                return;
+                            }
+
+                            // Get configured levels to monitor
+                            $levels = config('log-notifier.levels', ['error', 'critical', 'alert', 'emergency']);
+                            $logLevel = strtolower($record->getLevelName());
+                            
+                            // Check if this level should be monitored
+                            if (! in_array($logLevel, $levels)) {
+                                return;
+                            }
+
+                            try {
+                                // Store directly
+                                $repository = $this->app->make(\Irabbi360\LaravelLogNotifier\Services\ErrorRepository::class);
+                                $repository->store([
+                                    'level' => $logLevel,
+                                    'message' => $record->getMessage(),
+                                    'trace' => null,
+                                    'file' => 'Log',
+                                    'line' => 0,
+                                    'context' => $record->getContext() ?? [],
+                                ]);
+                            } catch (\Exception $e) {
+                                // Silent fail
+                            }
+                        }
+                    };
+                    
+                    $monologLogger->pushHandler($handlerObj);
+                }
+            } catch (\Exception $e) {
+                // Silent fail if Monolog not available
+            }
         }
     }
 }
