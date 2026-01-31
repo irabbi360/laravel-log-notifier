@@ -216,8 +216,8 @@ class DashboardController extends Controller
 
         // Send any pending errors immediately
         $pendingErrors = $this->getPendingErrors($lastEventId);
-        
-        if (!empty($pendingErrors)) {
+
+        if (! empty($pendingErrors)) {
             // Client has missed some errors - send them immediately
             $response = response()->stream(function () use ($pendingErrors) {
                 header('Content-Type: text/event-stream');
@@ -237,7 +237,7 @@ class DashboardController extends Controller
                     echo ": ping\n\n";
                     flush();
                     sleep(10);
-                    
+
                     if (connection_aborted()) {
                         break;
                     }
@@ -267,7 +267,7 @@ class DashboardController extends Controller
                 echo ": ping\n\n";
                 flush();
                 sleep(10);
-                
+
                 if (connection_aborted()) {
                     break;
                 }
@@ -288,7 +288,7 @@ class DashboardController extends Controller
         try {
             $useDatabase = config('log-notifier.store_in_database', true);
 
-            if (!$useDatabase) {
+            if (! $useDatabase) {
                 // File mode - return empty, new errors come via stream polling
                 return [];
             }
@@ -313,8 +313,9 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             // Return empty array on error
             if (config('log-notifier.debug')) {
-                error_log('[Log Notifier] Stream error: ' . $e->getMessage());
+                error_log('[Log Notifier] Stream error: '.$e->getMessage());
             }
+
             return [];
         }
     }
@@ -347,7 +348,7 @@ class DashboardController extends Controller
             } else {
                 // For file mode, use cache with timestamps
                 $errors = ErrorCache::getAll();
-                
+
                 return array_map(function ($error) {
                     return [
                         'id' => $error['id'] ?? uniqid(),
@@ -362,8 +363,9 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             // Log error and return empty array to keep stream alive
             if (config('log-notifier.debug')) {
-                error_log('[Log Notifier SSE Error] ' . $e->getMessage());
+                error_log('[Log Notifier SSE Error] '.$e->getMessage());
             }
+
             return [];
         }
     }
