@@ -96,24 +96,25 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
         if (config('log-notifier.enabled', true)) {
             try {
                 $logger = $this->app->make('log');
-                
+
                 if ($logger && method_exists($logger, 'getLogger')) {
                     $monologLogger = $logger->getLogger();
                     $app = $this->app;
-                    
+
                     // Create handler - direct instantiation to avoid variable scope issues
-                    $handler = new \Monolog\Handler\AbstractProcessingHandler();
-                    
+                    $handler = new \Monolog\Handler\AbstractProcessingHandler;
+
                     // Override write method
-                    $handlerObj = new class($app) extends \Monolog\Handler\AbstractProcessingHandler {
+                    $handlerObj = new class($app) extends \Monolog\Handler\AbstractProcessingHandler
+                    {
                         private $app;
-                        
+
                         public function __construct($app)
                         {
                             $this->app = $app;
                             parent::__construct();
                         }
-                        
+
                         protected function write(\Monolog\LogRecord $record): void
                         {
                             if (! config('log-notifier.enabled', true)) {
@@ -123,7 +124,7 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
                             // Get configured levels to monitor
                             $levels = config('log-notifier.levels', ['error', 'critical', 'alert', 'emergency']);
                             $logLevel = strtolower($record->getLevelName());
-                            
+
                             // Check if this level should be monitored
                             if (! in_array($logLevel, $levels)) {
                                 return;
@@ -145,7 +146,7 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
                             }
                         }
                     };
-                    
+
                     $monologLogger->pushHandler($handlerObj);
                 }
             } catch (\Exception $e) {
