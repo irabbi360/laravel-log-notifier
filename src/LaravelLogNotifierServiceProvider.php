@@ -97,14 +97,16 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
             try {
                 $logger = $this->app->make('log');
                 
+                // Debug: Log that we're trying to register handler
+                error_log('[Log Notifier] Attempting to register Monolog handler');
+                
                 if ($logger && method_exists($logger, 'getLogger')) {
                     $monologLogger = $logger->getLogger();
                     $app = $this->app;
                     
-                    // Create handler - direct instantiation to avoid variable scope issues
-                    $handler = new \Monolog\Handler\AbstractProcessingHandler();
+                    error_log('[Log Notifier] Got Monolog logger instance');
                     
-                    // Override write method
+                    // Create handler
                     $handlerObj = new class($app) extends \Monolog\Handler\AbstractProcessingHandler {
                         private $app;
                         
@@ -112,27 +114,34 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
                         {
                             $this->app = $app;
                             parent::__construct();
+                            // Set handler to capture DEBUG level and above (all logs)
+                            $this->setLevel(\Monolog\Level::Debug);
                         }
                         
                         protected function write(\Monolog\LogRecord $record): void
                         {
+                            // Debug: Always log handler invocation
+                            error_log('[Log Notifier Handler] Fired for level: ' . $record->getLevelName() . ', message: ' . substr($record->getMessage(), 0, 50));
+                            
                             if (! config('log-notifier.enabled', true)) {
+                                error_log('[Log Notifier Handler] Log Notifier disabled');
                                 return;
                             }
 
-                            // Get configured levels to monitor
                             $levels = config('log-notifier.levels', ['error', 'critical', 'alert', 'emergency']);
                             $logLevel = strtolower($record->getLevelName());
                             
-                            // Check if this level should be monitored
+                            error_log('[Log Notifier Handler] Log level: ' . $logLevel . ', monitored levels: ' . json_encode($levels));
+                            
                             if (! in_array($logLevel, $levels)) {
+                                error_log('[Log Notifier Handler] Level ' . $logLevel . ' not monitored');
                                 return;
                             }
 
                             try {
-                                // Store directly
+                                error_log('[Log Notifier Handler] Storing error in repository');
                                 $repository = $this->app->make(\Irabbi360\LaravelLogNotifier\Services\ErrorRepository::class);
-                                $repository->store([
+                                $result = $repository->store([
                                     'level' => $logLevel,
                                     'message' => $record->getMessage(),
                                     'trace' => null,
@@ -140,16 +149,20 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
                                     'line' => 0,
                                     'context' => $record->getContext() ?? [],
                                 ]);
+                                error_log('[Log Notifier Handler] Stored successfully: ' . ($result ? 'true' : 'false'));
                             } catch (\Exception $e) {
-                                // Silent fail
+                                error_log('[Log Notifier Handler] Error storing: ' . $e->getMessage());
                             }
                         }
                     };
                     
                     $monologLogger->pushHandler($handlerObj);
+                    error_log('[Log Notifier] Monolog handler registered successfully');
+                } else {
+                    error_log('[Log Notifier] Logger does not have getLogger method');
                 }
             } catch (\Exception $e) {
-                // Silent fail if Monolog not available
+                error_log('[Log Notifier] Exception registering Monolog handler: ' . $e->getMessage());
             }
         }
     }
