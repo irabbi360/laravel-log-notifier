@@ -16,12 +16,10 @@ class LogNotifierWatcher
      */
     public static function handles(Exceptions $exceptions): void
     {
-        $exceptions->shouldReport(function (Throwable $e) {
+        $exceptions->report(function (Throwable $e) {
             if (config('log-notifier.enabled', true)) {
                 ExceptionTracker::track($e);
             }
-
-            return true;
         });
     }
 }
