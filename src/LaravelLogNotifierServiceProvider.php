@@ -104,9 +104,9 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
 
         // Also add direct Log facade listener as fallback
         try {
-            \Illuminate\Support\Facades\Log::listen(
-                [$this, 'handleLogMessage']
-            );
+            \Illuminate\Support\Facades\Log::listen(function ($message, $level, $context) {
+                $this->handleLogMessage(new LogWritten($level, $message, $context));
+            });
         } catch (\Exception $e) {
             // Silent fail
         }
