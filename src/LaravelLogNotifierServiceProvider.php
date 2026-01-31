@@ -96,20 +96,20 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
         if (config('log-notifier.enabled', true)) {
             try {
                 $logger = $this->app->make('log');
-                
+
                 // Debug: Log that we're trying to register handler
                 error_log('[Log Notifier] Attempting to register Monolog handler');
-                
+
                 if ($logger && method_exists($logger, 'getLogger')) {
                     $monologLogger = $logger->getLogger();
                     $app = $this->app;
-                    
+
                     error_log('[Log Notifier] Got Monolog logger instance');
-                    
+
                     // Create handler
                     $handlerObj = new class($app) extends \Monolog\Handler\AbstractProcessingHandler {
                         private $app;
-                        
+
                         public function __construct($app)
                         {
                             $this->app = $app;
@@ -117,12 +117,12 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
                             // Set handler to capture DEBUG level and above (all logs)
                             $this->setLevel(\Monolog\Level::Debug);
                         }
-                        
+
                         protected function write(\Monolog\LogRecord $record): void
                         {
                             // Debug: Always log handler invocation
                             error_log('[Log Notifier Handler] Fired for level: ' . $record->getLevelName() . ', message: ' . substr($record->getMessage(), 0, 50));
-                            
+
                             if (! config('log-notifier.enabled', true)) {
                                 error_log('[Log Notifier Handler] Log Notifier disabled');
                                 return;
@@ -130,9 +130,9 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
 
                             $levels = config('log-notifier.levels', ['error', 'critical', 'alert', 'emergency']);
                             $logLevel = strtolower($record->getLevelName());
-                            
+
                             error_log('[Log Notifier Handler] Log level: ' . $logLevel . ', monitored levels: ' . json_encode($levels));
-                            
+
                             if (! in_array($logLevel, $levels)) {
                                 error_log('[Log Notifier Handler] Level ' . $logLevel . ' not monitored');
                                 return;
@@ -155,7 +155,7 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
                             }
                         }
                     };
-                    
+
                     $monologLogger->pushHandler($handlerObj);
                     error_log('[Log Notifier] Monolog handler registered successfully');
                 } else {
