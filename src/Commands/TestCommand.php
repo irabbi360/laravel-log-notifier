@@ -22,6 +22,7 @@ class TestCommand extends Command
         // Check if enabled
         if (! config('log-notifier.enabled', true)) {
             $this->error('❌ Log Notifier is DISABLED. Enable it in config/log-notifier.php or set LOG_NOTIFIER_ENABLED=true');
+
             return self::FAILURE;
         }
 
@@ -39,7 +40,7 @@ class TestCommand extends Command
 
         // Generate test log
         $testMessage = 'Log Notifier Test Error - '.now()->toDateTimeString();
-        
+
         switch ($level) {
             case 'emergency':
                 Log::emergency($testMessage);
@@ -64,7 +65,7 @@ class TestCommand extends Command
         try {
             $errorCount = \DB::table('log_notifier_errors')->count();
             $this->info('📊 Total errors in database: '.$errorCount);
-            
+
             $recentError = \DB::table('log_notifier_errors')
                 ->latest('id')
                 ->first();
@@ -78,6 +79,7 @@ class TestCommand extends Command
         } catch (\Exception $e) {
             $this->error('❌ Database error: '.$e->getMessage());
             $this->warn('   Make sure you ran: php artisan migrate');
+
             return self::FAILURE;
         }
 

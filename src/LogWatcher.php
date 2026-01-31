@@ -2,9 +2,9 @@
 
 namespace Irabbi360\LaravelLogNotifier;
 
-use Throwable;
-use Laravel\Framework\Foundation\Configuration\Exceptions;
 use Irabbi360\LaravelLogNotifier\Support\ExceptionTracker;
+use Laravel\Framework\Foundation\Configuration\Exceptions;
+use Throwable;
 
 class LogWatcher
 {
@@ -13,9 +13,6 @@ class LogWatcher
      *
      * Usage in bootstrap/app.php:
      * LogWatcher::handles($exceptions);
-     *
-     * @param Exceptions $exceptions
-     * @return void
      */
     public static function handles(Exceptions $exceptions): void
     {
@@ -23,6 +20,7 @@ class LogWatcher
             if (config('log-notifier.enabled', true)) {
                 ExceptionTracker::track($e);
             }
+
             return true;
         });
     }
