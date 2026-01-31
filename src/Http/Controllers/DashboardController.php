@@ -216,7 +216,7 @@ class DashboardController extends Controller
         header('Cache-Control: no-cache');
         header('Connection: keep-alive');
         header('X-Accel-Buffering: no');
-        
+
         // Prevent output buffering
         if (ob_get_level()) {
             ob_end_clean();
@@ -232,7 +232,7 @@ class DashboardController extends Controller
 
             // Send any pending errors
             $pendingErrors = $this->getPendingErrors($lastEventId);
-            
+
             if (!empty($pendingErrors)) {
                 foreach ($pendingErrors as $error) {
                     echo "id: {$error['id']}\n";
@@ -245,15 +245,15 @@ class DashboardController extends Controller
             // Client will reconnect automatically
             $iterations = 0;
             $maxIterations = 3; // 30 seconds / 10 = 3 iterations max to stay under PHP timeout
-            
+
             while ($iterations < $maxIterations) {
                 echo ": ping\n\n";
                 flush();
-                
+
                 if (connection_aborted()) {
                     break;
                 }
-                
+
                 usleep(500000); // 0.5 seconds instead of sleep(10)
                 $iterations++;
             }
@@ -265,7 +265,7 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             // Log error but don't output it (would break SSE protocol)
             error_log('[Log Notifier Stream Error] ' . $e->getMessage());
-            
+
             // Send error event
             echo "event: error\n";
             echo "data: Stream error\n\n";
@@ -291,7 +291,7 @@ class DashboardController extends Controller
 
             // Database mode - get new errors
             $modelClass = \Irabbi360\LaravelLogNotifier\Models\LogError::class;
-            
+
             if (!class_exists($modelClass)) {
                 error_log('[Log Notifier] LogError model not found');
                 return [];
@@ -321,7 +321,7 @@ class DashboardController extends Controller
             // Log detailed error for debugging
             error_log('[Log Notifier Stream] Error fetching pending errors: ' . $e->getMessage());
             error_log('[Log Notifier Stream] File: ' . $e->getFile() . ' Line: ' . $e->getLine());
-            
+
             // Return empty array to keep stream alive
             return [];
         }
@@ -355,7 +355,7 @@ class DashboardController extends Controller
             } else {
                 // For file mode, use cache with timestamps
                 $errors = ErrorCache::getAll();
-                
+
                 return array_map(function ($error) {
                     return [
                         'id' => $error['id'] ?? uniqid(),
