@@ -17,10 +17,10 @@ class ExceptionTracker
         }
 
         try {
-            // Generate unique error ID
+            // Generate unique error ID based on timestamp
             $errorId = time() * 1000 + random_int(0, 999);
             
-            // Create error data without storing in database
+            // Create error data
             $error = [
                 'id' => $errorId,
                 'level' => 'error',
@@ -31,24 +31,19 @@ class ExceptionTracker
                 'occurred_at' => now()->toIso8601String(),
             ];
 
-            // Write complete error data to signal file for SSE stream
+            // Write error to file (overwrite previous - only keep current error)
             try {
-                $disk = Storage::disk('public');
-                $signal = [
-                    'error_id' => $errorId,
-                    'timestamp' => now()->timestamp,
-                    'error' => $error, // Include full error data
-                ];
-
-                $disk->put('log-notifier-signal.json', json_encode($signal));
+                $disk = \Illuminate\Support\Facades\Storage::disk('public');
                 
-                error_log('[Log Notifier] Exception tracked without DB - ID: '.$errorId.', message: '.$exception->getMessage());
+                // Write single error (overwrites previous)
+                $disk->put('log-notifier-current.json', json_encode($error));
+                
+                error_log('[Log Notifier] Exception logged - ID: '.$errorId.', message: '.$error['message']);
             } catch (\Throwable $fileEx) {
-                // Silent fail - don't break the app if signal file write fails
-                \Log::debug('[Log Notifier] Signal file write failed: ' . $fileEx->getMessage());
+                \Log::debug('[Log Notifier] File write failed: ' . $fileEx->getMessage());
             }
         } catch (\Exception $e) {
-            // Silent fail - don't break the app
+            // Silent fail
         }
     }
 }

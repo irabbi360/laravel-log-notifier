@@ -236,10 +236,10 @@ class DashboardController extends Controller
             }
 
             // Keep connection alive for 25 seconds
-            // Read errors directly from signal file (no database)
+            // Read current error from file
             $startTime = time();
             $maxDuration = 25; // seconds
-            $lastProcessedErrorId = 0;
+            $lastErrorId = 0;
             $lastHeartbeat = $startTime;
 
             error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Starting keep-alive loop');
@@ -252,26 +252,25 @@ class DashboardController extends Controller
 
                 $currentTime = time();
                 
-                // Check signal file for new errors
+                // Check for current error
                 try {
                     $disk = \Illuminate\Support\Facades\Storage::disk('public');
-                    $signalFileName = 'log-notifier-signal.json';
+                    $errorFileName = 'log-notifier-current.json';
                     
-                    if ($disk->exists($signalFileName)) {
-                        $signalContent = $disk->get($signalFileName);
+                    if ($disk->exists($errorFileName)) {
+                        $errorContent = $disk->get($errorFileName);
                         
-                        if ($signalContent) {
-                            $signal = @json_decode($signalContent, true);
+                        if ($errorContent) {
+                            $error = @json_decode($errorContent, true);
                             
-                            if ($signal && isset($signal['error_id']) && isset($signal['error'])) {
-                                $errorId = (int)$signal['error_id'];
-                                $error = $signal['error'];
+                            if (is_array($error) && isset($error['id'])) {
+                                $errorId = (int)$error['id'];
                                 
-                                // If error ID is new, send it
-                                if ($errorId > $lastProcessedErrorId) {
-                                    $lastProcessedErrorId = $errorId;
+                                // If error ID changed (new error), send it
+                                if ($errorId !== $lastErrorId) {
+                                    $lastErrorId = $errorId;
                                     
-                                    error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - SENDING error ID: '.$errorId.', message: '.$error['message']);
+                                    error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - NEW ERROR detected - ID: '.$errorId.', message: '.$error['message']);
                                     echo "id: {$errorId}\n";
                                     echo 'data: '.json_encode([
                                         'id' => $errorId,
@@ -287,7 +286,7 @@ class DashboardController extends Controller
                         }
                     }
                 } catch (\Exception $ex) {
-                    error_log('[Log Notifier SSE Error] Signal processing: '.$ex->getMessage());
+                    error_log('[Log Notifier SSE Error] Error processing: '.$ex->getMessage());
                 }
                 
                 // Send heartbeat every 10 seconds
