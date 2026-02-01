@@ -2,7 +2,6 @@
 
 namespace Irabbi360\LaravelLogNotifier\Services;
 
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 
 class LogWatcher
@@ -127,6 +126,7 @@ class LogWatcher
         fseek($handle, $start);
         $content = fread($handle, $end - $start);
         fclose($handle);
+
         return $content ?: '';
     }
 

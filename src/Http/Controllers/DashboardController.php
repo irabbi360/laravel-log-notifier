@@ -5,7 +5,6 @@ namespace Irabbi360\LaravelLogNotifier\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Irabbi360\LaravelLogNotifier\Services\ErrorRepository;
-use Irabbi360\LaravelLogNotifier\Services\LogFileReader;
 
 class DashboardController extends Controller
 {
