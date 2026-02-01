@@ -292,14 +292,14 @@ class DashboardController extends Controller
                                     error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - NEW ERROR detected - ID: '.$errorId.', message: '.$error['message']);
                                     echo "id: {$errorId}\n";
                                     echo 'data: '.json_encode([
-                                            'id' => $errorId,
-                                            'level' => $error['level'] ?? 'error',
-                                            'message' => $error['message'] ?? 'Unknown error',
-                                            'trace' => $error['trace'] ?? '',
-                                            'file' => $error['file'] ?? 'unknown',
-                                            'line' => $error['line'] ?? 0,
-                                            'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
-                                        ])."\n\n";
+                                        'id' => $errorId,
+                                        'level' => $error['level'] ?? 'error',
+                                        'message' => $error['message'] ?? 'Unknown error',
+                                        'trace' => $error['trace'] ?? '',
+                                        'file' => $error['file'] ?? 'unknown',
+                                        'line' => $error['line'] ?? 0,
+                                        'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
+                                    ])."\n\n";
                                     flush();
                                 }
                             }
