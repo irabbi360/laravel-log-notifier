@@ -202,73 +202,120 @@ class DashboardController extends Controller
         try {
             // Get Last-Event-ID from request header
             $lastEventId = (int) ($request->header('Last-Event-ID') ?? 0);
+            
+            error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Stream connection opened, lastEventId: '.$lastEventId);
 
             // Send initial connection message
             echo ": Connected\n\n";
             flush();
 
-            // Only filter by time on initial connection (when lastEventId is 0)
-            // On reconnection, rely solely on lastEventId to avoid duplicates
-            $secondsRecent = ($lastEventId === 0) ? 30 : null;
-            
-            $pendingErrors = $this->getPendingErrors($lastEventId, $secondsRecent);
+            // On initial connection (lastEventId=0), don't send old errors
+            // Only send NEW errors that occur AFTER this moment (WebSocket-like behavior)
+            // On reconnection (lastEventId>0), send errors since last event
+            if ($lastEventId > 0) {
+                try {
+                    error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Reconnection: sending errors since lastEventId='.$lastEventId);
+                    
+                    $pendingErrors = $this->getPendingErrors($lastEventId);
 
-            if (! empty($pendingErrors)) {
-                foreach ($pendingErrors as $error) {
-                    echo "id: {$error['id']}\n";
-                    echo 'data: '.json_encode($error)."\n\n";
-                    flush();
+                    error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Found '.count($pendingErrors).' pending errors');
+
+                    if (! empty($pendingErrors)) {
+                        foreach ($pendingErrors as $error) {
+                            error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Sending error ID: '.$error['id'].', level: '.$error['level']);
+                            echo "id: {$error['id']}\n";
+                            echo 'data: '.json_encode($error)."\n\n";
+                            flush();
+                        }
+                    }
+                } catch (\Exception $ex) {
+                    error_log('[Log Notifier SSE] Error getting pending errors: '.$ex->getMessage());
                 }
+            } else {
+                error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Initial connection: NOT sending old errors, waiting for NEW ones only');
             }
 
-            // Keep connection alive for 25 seconds (safely under 30s PHP timeout)
-            // Check for new errors every 1 second instead of just sending heartbeats
+            // Keep connection alive for 25 seconds
+            // Read errors directly from signal file (no database)
             $startTime = time();
             $maxDuration = 25; // seconds
-            $lastCheck = $startTime;
-            $checkInterval = 1; // Check every 1 second for new errors
+            $lastProcessedErrorId = 0;
+            $lastHeartbeat = $startTime;
+
+            error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Starting keep-alive loop');
 
             while ((time() - $startTime) < $maxDuration) {
                 if (connection_aborted()) {
+                    error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Connection aborted by client');
                     break;
                 }
 
                 $currentTime = time();
-                if ($currentTime - $lastCheck >= $checkInterval) {
-                    // Check for new errors since last check
-                    $newErrors = $this->getPendingErrors($lastEventId);
+                
+                // Check signal file for new errors
+                try {
+                    $disk = \Illuminate\Support\Facades\Storage::disk('public');
+                    $signalFileName = 'log-notifier-signal.json';
                     
-                    if (! empty($newErrors)) {
-                        foreach ($newErrors as $error) {
-                            echo "id: {$error['id']}\n";
-                            echo 'data: '.json_encode($error)."\n\n";
-                            flush();
-                            $lastEventId = $error['id']; // Update last event ID
+                    if ($disk->exists($signalFileName)) {
+                        $signalContent = $disk->get($signalFileName);
+                        
+                        if ($signalContent) {
+                            $signal = @json_decode($signalContent, true);
+                            
+                            if ($signal && isset($signal['error_id']) && isset($signal['error'])) {
+                                $errorId = (int)$signal['error_id'];
+                                $error = $signal['error'];
+                                
+                                // If error ID is new, send it
+                                if ($errorId > $lastProcessedErrorId) {
+                                    $lastProcessedErrorId = $errorId;
+                                    
+                                    error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - SENDING error ID: '.$errorId.', message: '.$error['message']);
+                                    echo "id: {$errorId}\n";
+                                    echo 'data: '.json_encode([
+                                        'id' => $errorId,
+                                        'level' => $error['level'] ?? 'error',
+                                        'message' => $error['message'] ?? 'Unknown error',
+                                        'file' => $error['file'] ?? 'unknown',
+                                        'line' => $error['line'] ?? 0,
+                                        'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
+                                    ])."\n\n";
+                                    flush();
+                                }
+                            }
                         }
-                    } else {
-                        // Send heartbeat when no new errors
-                        echo ": ping\n\n";
-                        flush();
                     }
-                    
-                    $lastCheck = $currentTime;
+                } catch (\Exception $ex) {
+                    error_log('[Log Notifier SSE Error] Signal processing: '.$ex->getMessage());
+                }
+                
+                // Send heartbeat every 10 seconds
+                if (($currentTime - $lastHeartbeat) >= 10) {
+                    echo ": heartbeat\n\n";
+                    flush();
+                    $lastHeartbeat = $currentTime;
                 }
 
-                usleep(100000); // 0.1 seconds - small sleep to reduce CPU usage
+                usleep(100000); // 0.1 seconds
             }
 
             // Close connection gracefully
+            error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Closing stream connection after 25 seconds');
             echo "event: close\n";
             echo "data: Connection timeout\n\n";
             flush();
         } catch (\Exception $e) {
-            // Log error but don't output it (would break SSE protocol)
+            // Log error with full details
             error_log('[Log Notifier Stream Error] '.$e->getMessage());
+            error_log('[Log Notifier Stream Error Stack] '.$e->getTraceAsString());
 
-            // Send error event
-            echo "event: error\n";
-            echo "data: Stream error\n\n";
-            flush();
+            // Only send error event if headers not sent
+            if (!headers_sent()) {
+                echo "event: error\n";
+                echo "data: Stream error - ".$e->getMessage()."\n\n";
+                flush();
+            }
         }
 
         exit;

@@ -161,8 +161,15 @@ const GlobalToast = {
     enabled: localStorage.getItem('logNotifierToasts') !== 'false',
     dashboardRoute: '{{ config('log-notifier.dashboard_route', '/log-notifier') }}',
     useSSE: {{ config('log-notifier.use_sse', true) ? 'true' : 'false' }},
+    displayedErrors: {},
+    initialized: false,
     
     init() {
+        if (this.initialized) {
+            return;
+        }
+        this.initialized = true;
+
         // Create container if not exists
         this.container = document.getElementById('log-notifier-container');
         if (!this.container) {
@@ -183,16 +190,10 @@ const GlobalToast = {
             document.body.appendChild(toggle);
         }
 
-        // Start SSE connection
+        // Start SSE connection only once
         if (this.enabled) {
             this.startSSE();
         }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            if (this.enabled) {
-                this.startSSE();
-            }
-        });
     },
 
     show(message, type = 'info', duration = 5000, onClick = null) {
@@ -268,27 +269,32 @@ const GlobalToast = {
         // Handle new errors
         this.eventSource.addEventListener('message', (event) => {
             try {
-                // Skip connection messages and heartbeats (they start with :)
-                if (event.data && !event.data.startsWith(':')) {
+                // Skip heartbeats and connection messages (comments start with :)
+                if (event.data && event.data.trim() && !event.data.startsWith(':')) {
                     const error = JSON.parse(event.data);
                     this.displayError(error);
                 }
             } catch (e) {
-                // Failed to parse message
+                // Failed to parse message - ignore heartbeats
             }
         });
 
         // Handle connection open
         this.eventSource.addEventListener('open', (e) => {
-            // Connection established
+            // Connection established - do nothing, just keep it alive
         });
 
-        // Handle errors
+        // Handle stream errors and reconnect with exponential backoff
         this.eventSource.addEventListener('error', (e) => {
-            this.eventSource.close();
-            // Reconnect after 3 seconds (longer interval for normal close)
-            if (this.enabled) {
-                setTimeout(() => this.startSSE(), 3000);
+            if (this.eventSource && this.eventSource.readyState === EventSource.CLOSED) {
+                // Stream closed - wait 5 seconds before reconnecting
+                if (this.enabled) {
+                    setTimeout(() => {
+                        if (this.enabled) {
+                            this.startSSE();
+                        }
+                    }, 5000);
+                }
             }
         });
 
@@ -310,6 +316,12 @@ const GlobalToast = {
     },
 
     displayError(error) {
+        // Prevent displaying the same error twice
+        if (this.displayedErrors[error.id]) {
+            return;
+        }
+        this.displayedErrors[error.id] = true;
+
         const typeMap = {
             'emergency': 'emergency',
             'alert': 'alert',
