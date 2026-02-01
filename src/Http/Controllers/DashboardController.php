@@ -210,11 +210,10 @@ class DashboardController extends Controller
             flush();
 
             // On initial connection (lastEventId=0), don't send old errors
-            // Only send NEW errors that occur AFTER this moment (WebSocket-like behavior)
-            // On reconnection (lastEventId>0), send errors since last event
+            // Only send NEW errors that occur AFTER this moment
             if ($lastEventId > 0) {
                 try {
-                    error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Reconnection: sending errors since lastEventId='.$lastEventId);
+                    error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Reconnection: checking for errors since lastEventId='.$lastEventId);
                     
                     $pendingErrors = $this->getPendingErrors($lastEventId);
 
@@ -232,17 +231,36 @@ class DashboardController extends Controller
                     error_log('[Log Notifier SSE] Error getting pending errors: '.$ex->getMessage());
                 }
             } else {
-                error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Initial connection: NOT sending old errors, waiting for NEW ones only');
+                error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Initial connection: waiting for NEW errors only (not sending old ones)');
             }
 
             // Keep connection alive for 25 seconds
-            // Read current error from file
+            // Read current error from file - only send if it's NEWER than connection start
             $startTime = time();
             $maxDuration = 25; // seconds
-            $lastErrorId = 0;
             $lastHeartbeat = $startTime;
 
-            error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Starting keep-alive loop');
+            // Initialize lastErrorId with current error ID from file (so old errors don't show on load)
+            $lastErrorId = 0;
+            try {
+                $disk = \Illuminate\Support\Facades\Storage::disk('public');
+                $errorFileName = 'log-notifier-current.json';
+                
+                if ($disk->exists($errorFileName)) {
+                    $errorContent = $disk->get($errorFileName);
+                    if ($errorContent) {
+                        $error = @json_decode($errorContent, true);
+                        if (is_array($error) && isset($error['id'])) {
+                            $lastErrorId = (int)$error['id'];
+                            error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Initialized lastErrorId from existing error: '.$lastErrorId);
+                        }
+                    }
+                }
+            } catch (\Exception $ex) {
+                error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Error initializing lastErrorId: '.$ex->getMessage());
+            }
+
+            error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Starting keep-alive loop with lastErrorId: '.$lastErrorId);
 
             while ((time() - $startTime) < $maxDuration) {
                 if (connection_aborted()) {
@@ -266,8 +284,9 @@ class DashboardController extends Controller
                             if (is_array($error) && isset($error['id'])) {
                                 $errorId = (int)$error['id'];
                                 
-                                // If error ID changed (new error), send it
-                                if ($errorId !== $lastErrorId) {
+                                // Only send if error ID is greater than last sent (new error)
+                                // Skip initial old error in the file
+                                if ($errorId > $lastErrorId) {
                                     $lastErrorId = $errorId;
                                     
                                     error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - NEW ERROR detected - ID: '.$errorId.', message: '.$error['message']);
