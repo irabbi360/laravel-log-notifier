@@ -202,7 +202,7 @@ class DashboardController extends Controller
         try {
             // Get Last-Event-ID from request header
             $lastEventId = (int) ($request->header('Last-Event-ID') ?? 0);
-            
+
             error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Stream connection opened, lastEventId: '.$lastEventId);
 
             // Send initial connection message
@@ -214,7 +214,7 @@ class DashboardController extends Controller
             if ($lastEventId > 0) {
                 try {
                     error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Reconnection: checking for errors since lastEventId='.$lastEventId);
-                    
+
                     $pendingErrors = $this->getPendingErrors($lastEventId);
 
                     error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Found '.count($pendingErrors).' pending errors');
@@ -245,13 +245,13 @@ class DashboardController extends Controller
             try {
                 $disk = \Illuminate\Support\Facades\Storage::disk('public');
                 $errorFileName = 'log-notifier-current.json';
-                
+
                 if ($disk->exists($errorFileName)) {
                     $errorContent = $disk->get($errorFileName);
                     if ($errorContent) {
                         $error = @json_decode($errorContent, true);
                         if (is_array($error) && isset($error['id'])) {
-                            $lastErrorId = (int)$error['id'];
+                            $lastErrorId = (int) $error['id'];
                             error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - Initialized lastErrorId from existing error: '.$lastErrorId);
                         }
                     }
@@ -269,26 +269,26 @@ class DashboardController extends Controller
                 }
 
                 $currentTime = time();
-                
+
                 // Check for current error
                 try {
                     $disk = \Illuminate\Support\Facades\Storage::disk('public');
                     $errorFileName = 'log-notifier-current.json';
-                    
+
                     if ($disk->exists($errorFileName)) {
                         $errorContent = $disk->get($errorFileName);
-                        
+
                         if ($errorContent) {
                             $error = @json_decode($errorContent, true);
-                            
+
                             if (is_array($error) && isset($error['id'])) {
-                                $errorId = (int)$error['id'];
-                                
+                                $errorId = (int) $error['id'];
+
                                 // Only send if error ID is greater than last sent (new error)
                                 // Skip initial old error in the file
                                 if ($errorId > $lastErrorId) {
                                     $lastErrorId = $errorId;
-                                    
+
                                     error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - NEW ERROR detected - ID: '.$errorId.', message: '.$error['message']);
                                     echo "id: {$errorId}\n";
                                     echo 'data: '.json_encode([
@@ -307,7 +307,7 @@ class DashboardController extends Controller
                 } catch (\Exception $ex) {
                     error_log('[Log Notifier SSE Error] Error processing: '.$ex->getMessage());
                 }
-                
+
                 // Send heartbeat every 10 seconds
                 if (($currentTime - $lastHeartbeat) >= 10) {
                     echo ": heartbeat\n\n";
@@ -329,9 +329,9 @@ class DashboardController extends Controller
             error_log('[Log Notifier Stream Error Stack] '.$e->getTraceAsString());
 
             // Only send error event if headers not sent
-            if (!headers_sent()) {
+            if (! headers_sent()) {
                 echo "event: error\n";
-                echo "data: Stream error - ".$e->getMessage()."\n\n";
+                echo 'data: Stream error - '.$e->getMessage()."\n\n";
                 flush();
             }
         }
@@ -357,12 +357,12 @@ class DashboardController extends Controller
                 ->where('id', '>', $lastEventId)
                 ->orderBy('id', 'asc')
                 ->limit(10);
-            
+
             // Only get recent errors if specified
             if ($secondsRecent !== null) {
                 $query->where('created_at', '>', now()->subSeconds($secondsRecent));
             }
-            
+
             $errors = $query->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at']);
 
             if (! $errors || $errors->isEmpty()) {

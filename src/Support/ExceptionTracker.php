@@ -3,7 +3,6 @@
 namespace Irabbi360\LaravelLogNotifier\Support;
 
 use Throwable;
-use Illuminate\Support\Facades\Storage;
 
 class ExceptionTracker
 {
@@ -19,7 +18,7 @@ class ExceptionTracker
         try {
             // Generate unique error ID based on timestamp
             $errorId = time() * 1000 + random_int(0, 999);
-            
+
             // Create error data
             $error = [
                 'id' => $errorId,
@@ -34,13 +33,13 @@ class ExceptionTracker
             // Write error to file (overwrite previous - only keep current error)
             try {
                 $disk = \Illuminate\Support\Facades\Storage::disk('public');
-                
+
                 // Write single error (overwrites previous)
                 $disk->put('log-notifier-current.json', json_encode($error));
-                
+
                 error_log('[Log Notifier] Exception logged - ID: '.$errorId.', message: '.$error['message']);
             } catch (\Throwable $fileEx) {
-                \Log::debug('[Log Notifier] File write failed: ' . $fileEx->getMessage());
+                \Log::debug('[Log Notifier] File write failed: '.$fileEx->getMessage());
             }
         } catch (\Exception $e) {
             // Silent fail
