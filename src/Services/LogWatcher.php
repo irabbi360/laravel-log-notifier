@@ -127,49 +127,7 @@ class LogWatcher
         fseek($handle, $start);
         $content = fread($handle, $end - $start);
         fclose($handle);
-
         return $content ?: '';
-    }
-
-    /**
-     * Get the last read position for a log file.
-     */
-    protected function getLastPosition(?string $logFile = null): int
-    {
-        $logFile = $logFile ?? $this->logPath;
-        $key = $this->getCacheKey($logFile);
-
-        return (int) Cache::get($key, 0);
-    }
-
-    /**
-     * Save the current position for a log file.
-     */
-    protected function saveLastPosition(int $position, ?string $logFile = null): void
-    {
-        $logFile = $logFile ?? $this->logPath;
-        $key = $this->getCacheKey($logFile);
-
-        Cache::put($key, $position, now()->addDays(7));
-    }
-
-    /**
-     * Generate cache key for a log file.
-     */
-    protected function getCacheKey(string $logFile): string
-    {
-        return 'log_notifier_position_'.md5($logFile);
-    }
-
-    /**
-     * Reset the position tracker for all log files.
-     */
-    public function resetPosition(): void
-    {
-        $logFiles = $this->getLogFiles();
-        foreach ($logFiles as $logFile) {
-            Cache::forget($this->getCacheKey($logFile));
-        }
     }
 
     /**
@@ -177,21 +135,6 @@ class LogWatcher
      */
     protected function shouldNotify($error): bool
     {
-        // Check rate limiting
-        if (config('log-notifier.rate_limit.enabled', true)) {
-            $maxNotifications = config('log-notifier.rate_limit.max_notifications', 10);
-            $perMinutes = config('log-notifier.rate_limit.per_minutes', 5);
-
-            $key = 'log_notifier_rate_limit';
-            $count = Cache::get($key, 0);
-
-            if ($count >= $maxNotifications) {
-                return false;
-            }
-
-            Cache::put($key, $count + 1, now()->addMinutes($perMinutes));
-        }
-
         // Only notify for new errors, not duplicates that were incremented
         return $error->wasRecentlyCreated ?? false;
     }
