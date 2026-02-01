@@ -292,13 +292,14 @@ class DashboardController extends Controller
                                     error_log('[Log Notifier SSE] '.now()->format('Y-m-d H:i:s.u').' - NEW ERROR detected - ID: '.$errorId.', message: '.$error['message']);
                                     echo "id: {$errorId}\n";
                                     echo 'data: '.json_encode([
-                                        'id' => $errorId,
-                                        'level' => $error['level'] ?? 'error',
-                                        'message' => $error['message'] ?? 'Unknown error',
-                                        'file' => $error['file'] ?? 'unknown',
-                                        'line' => $error['line'] ?? 0,
-                                        'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
-                                    ])."\n\n";
+                                            'id' => $errorId,
+                                            'level' => $error['level'] ?? 'error',
+                                            'message' => $error['message'] ?? 'Unknown error',
+                                            'trace' => $error['trace'] ?? '',
+                                            'file' => $error['file'] ?? 'unknown',
+                                            'line' => $error['line'] ?? 0,
+                                            'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
+                                        ])."\n\n";
                                     flush();
                                 }
                             }
@@ -326,7 +327,7 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             // Log error with full details
             error_log('[Log Notifier Stream Error] '.$e->getMessage());
-            error_log('[Log Notifier Stream Error Stack] '.$e->getTraceAsString());
+            error_log('[Log Notifier Stream Error Stack] '.$e->getTrace());
 
             // Only send error event if headers not sent
             if (! headers_sent()) {
@@ -363,7 +364,7 @@ class DashboardController extends Controller
                 $query->where('created_at', '>', now()->subSeconds($secondsRecent));
             }
 
-            $errors = $query->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at']);
+            $errors = $query->get(['id', 'level', 'message', 'trace', 'file', 'line', 'last_occurred_at']);
 
             if (! $errors || $errors->isEmpty()) {
                 return [];
@@ -374,6 +375,7 @@ class DashboardController extends Controller
                     'id' => (int) $error->id,
                     'level' => (string) $error->level,
                     'message' => \Illuminate\Support\Str::limit((string) $error->message, 200),
+                    'trace' => \Illuminate\Support\Str::limit((string) $error->trace, 200),
                     'file' => (string) $error->file,
                     'line' => (int) $error->line,
                     'occurred_at' => $error->last_occurred_at ? $error->last_occurred_at->toIso8601String() : now()->toIso8601String(),
@@ -404,6 +406,7 @@ class DashboardController extends Controller
                             'id' => $error->id,
                             'level' => $error->level,
                             'message' => \Illuminate\Support\Str::limit($error->message, 200),
+                            'trace' => $error->trace,
                             'file' => $error->file,
                             'line' => $error->line,
                             'occurred_at' => $error->last_occurred_at->toIso8601String(),
@@ -419,6 +422,7 @@ class DashboardController extends Controller
                         'id' => $error['id'] ?? uniqid(),
                         'level' => $error['level'] ?? 'error',
                         'message' => \Illuminate\Support\Str::limit($error['message'] ?? '', 200),
+                        'trace' => \Illuminate\Support\Str::limit($error['trace'] ?? '', 200),
                         'file' => $error['file'] ?? 'unknown',
                         'line' => $error['line'] ?? 0,
                         'occurred_at' => $error['occurred_at'] ?? now()->toIso8601String(),
@@ -454,6 +458,7 @@ class DashboardController extends Controller
                 'id' => $error->id,
                 'level' => $error->level,
                 'message' => $error->message,
+                'trace' => $error->trace,
                 'file' => $error->file,
                 'line' => $error->line,
                 'occurred_at' => $error->last_occurred_at?->toIso8601String(),

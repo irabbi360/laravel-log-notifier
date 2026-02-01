@@ -26,7 +26,7 @@ class ExceptionTracker
                 'message' => $exception->getMessage(),
                 'file' => $exception->getFile(),
                 'line' => $exception->getLine(),
-                'trace' => $exception->getTraceAsString(),
+                'trace' => $exception->getTrace(),
                 'occurred_at' => now()->toIso8601String(),
             ];
 
