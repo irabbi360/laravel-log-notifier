@@ -207,8 +207,11 @@ class DashboardController extends Controller
             echo ": Connected\n\n";
             flush();
 
-            // Send any pending errors
-            $pendingErrors = $this->getPendingErrors($lastEventId);
+            // Only filter by time on initial connection (when lastEventId is 0)
+            // On reconnection, rely solely on lastEventId to avoid duplicates
+            $secondsRecent = ($lastEventId === 0) ? 30 : null;
+            
+            $pendingErrors = $this->getPendingErrors($lastEventId, $secondsRecent);
 
             if (! empty($pendingErrors)) {
                 foreach ($pendingErrors as $error) {
@@ -219,11 +222,11 @@ class DashboardController extends Controller
             }
 
             // Keep connection alive for 25 seconds (safely under 30s PHP timeout)
-            // Send heartbeat every 5 seconds
+            // Check for new errors every 1 second instead of just sending heartbeats
             $startTime = time();
             $maxDuration = 25; // seconds
-            $heartbeatInterval = 5; // seconds
-            $lastHeartbeat = $startTime;
+            $lastCheck = $startTime;
+            $checkInterval = 1; // Check every 1 second for new errors
 
             while ((time() - $startTime) < $maxDuration) {
                 if (connection_aborted()) {
@@ -231,10 +234,24 @@ class DashboardController extends Controller
                 }
 
                 $currentTime = time();
-                if ($currentTime - $lastHeartbeat >= $heartbeatInterval) {
-                    echo ": ping\n\n";
-                    flush();
-                    $lastHeartbeat = $currentTime;
+                if ($currentTime - $lastCheck >= $checkInterval) {
+                    // Check for new errors since last check
+                    $newErrors = $this->getPendingErrors($lastEventId);
+                    
+                    if (! empty($newErrors)) {
+                        foreach ($newErrors as $error) {
+                            echo "id: {$error['id']}\n";
+                            echo 'data: '.json_encode($error)."\n\n";
+                            flush();
+                            $lastEventId = $error['id']; // Update last event ID
+                        }
+                    } else {
+                        // Send heartbeat when no new errors
+                        echo ": ping\n\n";
+                        flush();
+                    }
+                    
+                    $lastCheck = $currentTime;
                 }
 
                 usleep(100000); // 0.1 seconds - small sleep to reduce CPU usage
@@ -259,32 +276,29 @@ class DashboardController extends Controller
 
     /**
      * Get pending errors since last event ID
-     * Only retrieves errors that haven't been sent yet
+     * Only retrieves errors that haven't been sent yet and are recent
      */
-    protected function getPendingErrors($lastEventId = 0): array
+    protected function getPendingErrors($lastEventId = 0, $secondsRecent = null): array
     {
         try {
-            $useDatabase = config('log-notifier.store_in_database', true);
-
-            if (! $useDatabase) {
-                // File mode - return empty, new errors will be picked up on next poll
-                return [];
-            }
-
             // Database mode - get new errors
             $modelClass = \Irabbi360\LaravelLogNotifier\Models\LogError::class;
 
             if (! class_exists($modelClass)) {
-                error_log('[Log Notifier] LogError model not found');
-
                 return [];
             }
 
-            $errors = $modelClass::query()
+            $query = $modelClass::query()
                 ->where('id', '>', $lastEventId)
                 ->orderBy('id', 'asc')
-                ->limit(10)
-                ->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at']);
+                ->limit(10);
+            
+            // Only get recent errors if specified
+            if ($secondsRecent !== null) {
+                $query->where('created_at', '>', now()->subSeconds($secondsRecent));
+            }
+            
+            $errors = $query->get(['id', 'level', 'message', 'file', 'line', 'last_occurred_at']);
 
             if (! $errors || $errors->isEmpty()) {
                 return [];
@@ -301,10 +315,6 @@ class DashboardController extends Controller
                 ];
             })->toArray();
         } catch (\Throwable $e) {
-            // Log detailed error for debugging
-            error_log('[Log Notifier Stream] Error fetching pending errors: '.$e->getMessage());
-            error_log('[Log Notifier Stream] File: '.$e->getFile().' Line: '.$e->getLine());
-
             // Return empty array to keep stream alive
             return [];
         }

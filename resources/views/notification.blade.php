@@ -183,22 +183,14 @@ const GlobalToast = {
             document.body.appendChild(toggle);
         }
 
-        // Start real-time stream or polling
+        // Start SSE connection
         if (this.enabled) {
-            if (this.useSSE) {
-                this.startSSE();
-            } else {
-                this.startPolling();
-            }
+            this.startSSE();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
             if (this.enabled) {
-                if (this.useSSE) {
-                    this.startSSE();
-                } else {
-                    this.startPolling();
-                }
+                this.startSSE();
             }
         });
     },
@@ -255,6 +247,14 @@ const GlobalToast = {
         setTimeout(() => toast.remove(), 300);
     },
 
+    startPolling() {
+        // Not used - using SSE instead
+    },
+
+    stopPolling() {
+        // Not used
+    },
+
     startSSE() {
         // Close existing connection if any
         if (this.eventSource) {
@@ -262,7 +262,8 @@ const GlobalToast = {
         }
 
         // Connect to Server-Sent Events stream
-        this.eventSource = new EventSource(`${this.dashboardRoute}/api/stream`);
+        const streamUrl = `${this.dashboardRoute}/api/stream`;
+        this.eventSource = new EventSource(streamUrl);
 
         // Handle new errors
         this.eventSource.addEventListener('message', (event) => {
@@ -273,13 +274,17 @@ const GlobalToast = {
                     this.displayError(error);
                 }
             } catch (e) {
-                // Silently skip non-JSON messages (like heartbeats)
+                // Failed to parse message
             }
+        });
+
+        // Handle connection open
+        this.eventSource.addEventListener('open', (e) => {
+            // Connection established
         });
 
         // Handle errors
         this.eventSource.addEventListener('error', (e) => {
-            console.warn('[Log Notifier] SSE connection closed');
             this.eventSource.close();
             // Reconnect after 3 seconds (longer interval for normal close)
             if (this.enabled) {
@@ -289,7 +294,6 @@ const GlobalToast = {
 
         // Handle stream close
         this.eventSource.addEventListener('close', (e) => {
-            console.log('[Log Notifier] Server closed connection, reconnecting...');
             this.eventSource.close();
             // Reconnect after brief delay (server is closing normally)
             if (this.enabled) {
