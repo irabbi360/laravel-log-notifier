@@ -14,7 +14,6 @@ class ExceptionTracker
      * This allows the SSE stream to deliver real-time notifications to the browser.
      *
      * @param  Throwable  $exception  The exception to track
-     * @return void
      */
     public static function track(Throwable $exception): void
     {
