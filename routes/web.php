@@ -13,6 +13,8 @@ use Irabbi360\LaravelLogNotifier\Http\Controllers\DashboardController;
 |
 */
 
-Route::get('/api/stream', [DashboardController::class, 'stream'])
-    ->name('log-notifier.api.stream')
-    ->middleware(['web']);
+Route::prefix('log-notifier')->group(function () {
+    Route::get('/api/stream', [DashboardController::class, 'stream'])
+        ->name('log-notifier.api.stream')
+        ->middleware(['web']);
+});

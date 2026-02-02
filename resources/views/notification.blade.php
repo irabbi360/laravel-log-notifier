@@ -299,14 +299,13 @@
     }
 
     .log-notifier-modal-field-value {
-        background: #0d1117;
+        /* background: #0d1117; */
         padding: 16px;
         border-radius: 6px;
         font-family: 'Fira Code', 'Menlo', 'Monaco', 'Courier New', monospace;
         font-size: 13px;
         color: #c9d1d9;
         word-break: break-all;
-        white-space: pre-wrap;
         overflow-x: auto;
         border: 1px solid #30363d;
         max-height: 300px;

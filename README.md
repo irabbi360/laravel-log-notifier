@@ -1,4 +1,4 @@
-# Laravel Log Notifier 🚨
+# Laravel Log Notifier
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/irabbi360/laravel-log-notifier.svg?style=flat-square)](https://packagist.org/packages/irabbi360/laravel-log-notifier)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/irabbi360/laravel-log-notifier/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/irabbi360/laravel-log-notifier/actions?query=workflow%3Arun-tests+branch%3Amain)
@@ -11,22 +11,22 @@ Laravel Log Notifier is a developer-friendly Laravel package that captures appli
 
 It helps you stay informed about errors as they happen, without constantly checking logs or using expensive third-party services like Sentry or Bugsnag.
 
-## ✨ Key Features
+## Key Features
 
-- 🔍 **Real-time Exception Capture** - Instantly detects and captures exceptions
-- 🚨 **Toast Notifications** - In-app alerts appear immediately in top-right corner
-- 📱 **Global Display** - Works across your entire application, no permissions needed
-- 🎯 **Interactive Modal** - Click notifications to view full error details
-- ⏸️ **Smart Pause** - Hover over notifications to pause auto-close timer
-- 🔔 **Sound Alerts** - Optional beep for critical errors
-- 🎨 **Professional UI** - Styled like Laravel's native error page
-- 📋 **Error Details** - Shows message, file, line number, and full stack trace
-- 💾 **Lightweight** - No database required, uses simple JSON storage
-- 🔒 **Secure** - Built with Laravel auth in mind
-- ⚡ **Zero Setup** - Works out of the box, no complex configuration
-- 🚀 **Production Ready** - Efficient and reliable error handling
+- **Real-time Exception Capture** - Instantly detects and captures exceptions
+- **Toast Notifications** - In-app alerts appear immediately in top-right corner
+- **Global Display** - Works across your entire application, no permissions needed
+- **Interactive Modal** - Click notifications to view full error details
+- **Smart Pause** - Hover over notifications to pause auto-close timer
+- **Sound Alerts** - Optional beep for critical errors
+- **Professional UI** - Styled like Laravel's native error page
+- **Error Details** - Shows message, file, line number, and full stack trace
+- **Lightweight** - No database required, uses simple JSON storage
+- **Secure** - Built with Laravel auth in mind
+- **Zero Setup** - Works out of the box, no complex configuration
+- **Production Ready** - Efficient and reliable error handling
 
-## 📦 Installation
+## Installation
 
 Install via Composer:
 
@@ -40,7 +40,7 @@ Publish the config file:
 php artisan vendor:publish --tag="log-notifier-config"
 ```
 
-## ⚙️ Configuration
+## Configuration
 
 Configure your settings in `config/log-notifier.php`:
 
@@ -57,6 +57,62 @@ return [
     ],
 ];
 ```
+
+## Quick Start
+
+### Step 1: Register Exception Handler
+
+In your `bootstrap/app.php`, add the Log Notifier exception handler:
+
+```php
+<?php
+
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
+use Irabbi360\LaravelLogNotifier\LogNotifierWatcher;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withConfiguration()
+    ->withRouting()
+    ->withMiddleware(function (Middleware $middleware) {
+        // ... your middleware
+    })
+    ->withExceptions(function (Exceptions $exceptions) {
+        // Register Log Notifier exception handler
+        LogNotifierWatcher::handles($exceptions);
+    })
+    ->create();
+```
+
+### Step 2: Add Notification Component
+
+Add the notification component to your main layout (e.g., `resources/views/layouts/app.blade.php`):
+
+```blade
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- your head content -->
+</head>
+<body>
+    <!-- your content -->
+
+    <!-- Add Log Notifier notification component -->
+    {!! LogNotifier::notification() !!}
+</body>
+</html>
+```
+
+### Step 3: Enable in Environment
+
+Make sure the package is enabled (default is true):
+
+```env
+LOG_NOTIFIER_ENABLED=true
+```
+
+Done! All exceptions will now trigger real-time toast notifications. 🎉
 
 ## 📖 Usage
 
@@ -118,19 +174,19 @@ Add this **single line** to your main layout file (e.g., `resources/views/layout
 
 That's it! Errors will now show as toast notifications across your entire application.
 
-## 🍞 Toast Notifications
+## Toast Notifications
 
 Toast notifications appear automatically when exceptions occur in your application:
 
 ### Features
 
-- ✅ **Real-time** - Instant notification delivery via Server-Sent Events (SSE)
-- 📍 **Always Visible** - Fixed position in top-right corner
-- 🎯 **Color-Coded** - Visual indication by error level (red for error, orange for warning, etc.)
-- ⏸️ **Hover to Pause** - Auto-close timer pauses when hovering over the notification
-- 📋 **Click for Details** - Open modal with full error information
-- 🔔 **Sound Alerts** - Optional beep for critical/alert level errors
-- 🎨 **Professional Styling** - Matches Laravel's native error page design
+- **Real-time** - Instant notification delivery via Server-Sent Events (SSE)
+- **Always Visible** - Fixed position in top-right corner
+- **Color-Coded** - Visual indication by error level (red for error, orange for warning, etc.)
+- **Hover to Pause** - Auto-close timer pauses when hovering over the notification
+- **Click for Details** - Open modal with full error information
+- **Sound Alerts** - Optional beep for critical/alert level errors
+- **Professional Styling** - Matches Laravel's native error page design
 
 ### User Interactions
 
@@ -141,7 +197,7 @@ Toast notifications appear automatically when exceptions occur in your applicati
 - **Press ESC Key** → Close the error details modal
 - **Click Outside Modal** → Close the error details modal
 
-## 🏗️ How It Works
+## How It Works
 
 The package uses **Server-Sent Events (SSE)** for real-time error delivery:
 
@@ -168,19 +224,19 @@ User Interaction (Hover/Click)
 - Browser maintains persistent connection for instant notifications
 - Automatic reconnection if connection drops
 
-## 🔒 Security
+## Security
 
 - **Built with Laravel Auth** - Works with your existing auth system
 - **No External Services** - Everything runs on your server
 - **No Sensitive Data Logging** - Exceptions are not persisted beyond current session
 
-## 🧪 Testing
+## Testing
 
 ```bash
 composer test
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Toast Notifications Not Appearing?
 
@@ -214,23 +270,23 @@ Make sure sound is enabled in config:
 
 Note: Browsers may require user interaction before playing audio.
 
-## 📝 Changelog
+## Changelog
 
 Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
 
-## 🤝 Contributing
+## Contributing
 
 Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
 
-## 🔐 Security Vulnerabilities
+## Security Vulnerabilities
 
 Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
 
-## 👏 Credits
+## Credits
 
 - [Fazle Rabbi](https://github.com/irabbi360)
 - [All Contributors](../../contributors)
 
-## 📄 License
+## License
 
 The MIT License (MIT). Please see [License File](LICENSE.md) for more information.

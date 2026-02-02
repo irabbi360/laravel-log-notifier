@@ -23,6 +23,11 @@ class LaravelLogNotifierServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        // Register the main class in the container
+        $this->app->singleton('log-notifier', function ($app) {
+            return new \Irabbi360\LaravelLogNotifier\LaravelLogNotifier();
+        });
+
         // Register facade alias for easy access
         if (! class_exists('LogNotifier')) {
             class_alias(
