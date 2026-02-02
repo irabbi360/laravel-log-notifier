@@ -7,7 +7,14 @@ use Throwable;
 class ExceptionTracker
 {
     /**
-     * Track an exception in Log Notifier.
+     * Track an exception and store it for real-time notification.
+     *
+     * Captures exception details and stores them in a JSON file.
+     * The file contains only the current exception (overwrites previous ones).
+     * This allows the SSE stream to deliver real-time notifications to the browser.
+     *
+     * @param  Throwable  $exception  The exception to track
+     * @return void
      */
     public static function track(Throwable $exception): void
     {
@@ -16,10 +23,10 @@ class ExceptionTracker
         }
 
         try {
-            // Generate unique error ID based on timestamp
+            // Generate unique error ID based on timestamp + random value
             $errorId = time() * 1000 + random_int(0, 999);
 
-            // Create error data
+            // Prepare error data with all relevant information
             $error = [
                 'id' => $errorId,
                 'level' => 'error',
@@ -30,19 +37,11 @@ class ExceptionTracker
                 'occurred_at' => now()->toIso8601String(),
             ];
 
-            // Write error to file (overwrite previous - only keep current error)
-            try {
-                $disk = \Illuminate\Support\Facades\Storage::disk('public');
-
-                // Write single error (overwrites previous)
-                $disk->put('log-notifier-current.json', json_encode($error));
-
-                error_log('[Log Notifier] Exception logged - ID: '.$errorId.', message: '.$error['message']);
-            } catch (\Throwable $fileEx) {
-                \Log::debug('[Log Notifier] File write failed: '.$fileEx->getMessage());
-            }
-        } catch (\Exception $e) {
-            // Silent fail
+            // Store error to JSON file
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            $disk->put('log-notifier-current.json', json_encode($error));
+        } catch (\Throwable $e) {
+            // Silently fail to prevent disrupting the application
         }
     }
 }

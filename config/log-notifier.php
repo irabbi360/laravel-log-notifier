@@ -15,50 +15,11 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Debug Mode
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, Log Notifier will log debug information about captured errors.
-    | Useful for troubleshooting if listeners aren't firing.
-    |
-    */
-    'debug' => env('LOG_NOTIFIER_DEBUG', false),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Log File Path
-    |--------------------------------------------------------------------------
-    |
-    | The path to the Laravel log file that should be monitored.
-    | Can be a single file path or a directory to scan all .log files.
-    |
-    | Examples:
-    | - Single file: storage_path('logs/laravel.log')
-    | - All logs in directory: storage_path('logs')
-    |
-    */
-    'log_path' => storage_path('logs'),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Scan All Log Files
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, all .log files in the log directory will be monitored.
-    | This is useful for multi-channel or daily rotated logs.
-    |
-    | When disabled, only the exact file path specified in 'log_path' is monitored.
-    |
-    */
-    'scan_all_logs' => env('LOG_NOTIFIER_SCAN_ALL_LOGS', true),
-
-    /*
-    |--------------------------------------------------------------------------
     | Log Levels to Monitor
     |--------------------------------------------------------------------------
     |
     | Specify which log levels should trigger notifications.
-    | Available levels: emergency, alert, critical, error, warning, notice, info, debug
+    | Available levels: emergency, alert, critical, error
     |
     */
     'levels' => [
@@ -70,226 +31,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Real-Time Event Listener
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, errors are captured in real-time as they're logged
-    | via Laravel's LogWritten event. This is the fastest way to detect errors.
-    |
-    | Disable this if you want to rely only on the log watcher command/scheduler.
-    |
-    */
-    'use_event_listener' => env('LOG_NOTIFIER_USE_EVENT_LISTENER', true),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Store in Database
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, errors will be stored in the log_notifier_errors table.
-    | When disabled, errors are only cached temporarily for display in toast notifications.
-    |
-    | This allows real-time toast alerts without database overhead.
-    | Set to false for development/testing, true for production tracking.
-    |
-    */
-    'store_in_database' => env('LOG_NOTIFIER_STORE_IN_DB', true),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Cache Duration (Minutes)
-    |--------------------------------------------------------------------------
-    |
-    | When store_in_database is false, cached errors are kept for this duration.
-    | After expiry, they're removed from the toast notification queue.
-    |
-    | This prevents memory bloat when running without database storage.
-    | Default: 60 minutes
-    |
-    */
-    'cache_duration' => env('LOG_NOTIFIER_CACHE_DURATION', 60),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Check Interval
-    |--------------------------------------------------------------------------
-    |
-    | How often (in seconds) the log watcher should check for new errors.
-    |
-    */
-    'check_interval' => 10,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Use Server-Sent Events (SSE) for Real-Time Alerts
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, uses Server-Sent Events for real-time error streaming
-    | instead of polling every N seconds. Provides instant alerts.
-    |
-    | Benefits:
-    | - Instant notifications when errors occur
-    | - Lower server load (no constant polling)
-    | - One-way communication (lighter than WebSockets)
-    |
-    | If disabled, falls back to polling every 'check_interval' seconds.
-    |
-    */
-    'use_sse' => env('LOG_NOTIFIER_USE_SSE', true),
-
-    /*
-    |--------------------------------------------------------------------------
-    | SSE Check Interval (Seconds)
-    |--------------------------------------------------------------------------
-    |
-    | How often the SSE endpoint checks for new errors.
-    | Only used when use_sse is enabled.
-    |
-    */
-    'sse_check_interval' => env('LOG_NOTIFIER_SSE_CHECK_INTERVAL', 1),
-
-    /*
-    |--------------------------------------------------------------------------
-    | SSE Max Duration (Seconds)
-    |--------------------------------------------------------------------------
-    |
-    | How long an SSE connection stays open before automatically closing.
-    | Client will reconnect automatically.
-    | Prevents indefinite connections.
-    |
-    */
-    'sse_max_duration' => env('LOG_NOTIFIER_SSE_MAX_DURATION', 300),
-
-    /*
-    |--------------------------------------------------------------------------
-    | Deduplication
-    |--------------------------------------------------------------------------
-    |
-    | When enabled, duplicate errors (same message, file, and line) will be
-    | grouped together instead of creating separate entries.
-    |
-    */
-    'deduplicate' => true,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Deduplication Time Window
-    |--------------------------------------------------------------------------
-    |
-    | Time window (in minutes) for deduplication. Errors within this window
-    | will be considered duplicates if they match.
-    |
-    */
-    'deduplicate_window' => 60,
-
-    /*
-    |--------------------------------------------------------------------------
     | Notification Settings
     |--------------------------------------------------------------------------
     |
-    | Configure the web push notification appearance.
+    | Configure the toast notification appearance.
     |
     */
     'notification' => [
         'title' => 'Laravel Error 🚨',
         'icon' => '/vendor/log-notifier/icon.png',
-        'badge' => '/vendor/log-notifier/badge.png',
-        'vibrate' => [100, 50, 100],
-        'require_interaction' => true,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard Route
-    |--------------------------------------------------------------------------
-    |
-    | The URL path where the error dashboard will be accessible.
-    |
-    */
-    'dashboard_route' => '/log-notifier',
-
-    /*
-    |--------------------------------------------------------------------------
-    | Dashboard Middleware
-    |--------------------------------------------------------------------------
-    |
-    | Middleware to apply to the dashboard routes for protection.
-    |
-    */
-    'middleware' => ['web'],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Auth Middleware
-    |--------------------------------------------------------------------------
-    |
-    | Additional authentication middleware for dashboard access.
-    | Set to null or empty array to disable authentication.
-    |
-    */
-    'auth_middleware' => [], // 'auth'
-
-    /*
-    |--------------------------------------------------------------------------
-    | Error Retention
-    |--------------------------------------------------------------------------
-    |
-    | Number of days to keep error records in the database.
-    | Set to 0 to keep errors indefinitely.
-    |
-    */
-    'retention_days' => 30,
-
-    /*
-    |--------------------------------------------------------------------------
-    | Mask Sensitive Data
-    |--------------------------------------------------------------------------
-    |
-    | Patterns to mask in error messages and stack traces.
-    | Useful for hiding passwords, API keys, etc.
-    |
-    */
-    'mask_patterns' => [
-        '/password["\']?\s*[=:]\s*["\']?[^"\'&\s]+/i',
-        '/api[_-]?key["\']?\s*[=:]\s*["\']?[^"\'&\s]+/i',
-        '/secret["\']?\s*[=:]\s*["\']?[^"\'&\s]+/i',
-        '/token["\']?\s*[=:]\s*["\']?[^"\'&\s]+/i',
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Mask Replacement
-    |--------------------------------------------------------------------------
-    |
-    | The string to use when masking sensitive data.
-    |
-    */
-    'mask_replacement' => '[REDACTED]',
-
-    /*
-    |--------------------------------------------------------------------------
-    | Rate Limiting
-    |--------------------------------------------------------------------------
-    |
-    | Limit the number of notifications sent within a time period.
-    |
-    */
-    'rate_limit' => [
-        'enabled' => true,
-        'max_notifications' => 10,
-        'per_minutes' => 5,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | Table Names
-    |--------------------------------------------------------------------------
-    |
-    | Customize the table names used by the package.
-    |
-    */
-    'tables' => [
-        'errors' => 'log_notifier_errors',
+        'sound' => true, // Play sound on critical errors
     ],
 
 ];

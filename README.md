@@ -7,45 +7,31 @@
 
 **Real-time Laravel error monitoring with Toast Notifications**
 
-Laravel Log Notifier is a developer-friendly Laravel package that monitors your application logs and sends **real-time in-app toast notifications** whenever an error or critical issue is detected.
+Laravel Log Notifier is a developer-friendly Laravel package that captures application exceptions and sends **real-time in-app toast notifications** instantly.
 
-It helps you stay instantly informed about production issues without constantly checking log files or using expensive third-party services like Sentry or Bugsnag.
+It helps you stay informed about errors as they happen, without constantly checking logs or using expensive third-party services like Sentry or Bugsnag.
 
-## ✨ Features
+## ✨ Key Features
 
-- 🔍 **Automatic Log Monitoring** - Scans Laravel log files for errors
-- 🚨 **Real-time Alerts** - Detects error, critical, alert & emergency logs
-- 🍞 **Toast Notifications** - In-app notifications that appear in the browser (no permissions needed)
-- 🌍 **Global Notifications** - Show alerts across your entire app, not just dashboard
-- 🔔 **Sound Alerts** - Optional beep sound for critical errors
-- 🖱️ **Click to View** - Navigate directly to error details from notifications
-- ⚙️ **Fully Configurable** - Customize via `config/log-notifier.php`
-- 🗂️ **Error Dashboard** - Beautiful UI to browse and manage errors
-- 🧠 **Deduplication** - Groups repeated errors automatically
-- 🔐 **Authentication** - Integrates with Laravel auth system
-- 🚀 **Queue Support** - Async notification dispatching
-- 🔒 **Security** - Masks sensitive data in logs
-- 💾 **Lightweight** - No external dependencies, no service workers
+- 🔍 **Real-time Exception Capture** - Instantly detects and captures exceptions
+- 🚨 **Toast Notifications** - In-app alerts appear immediately in top-right corner
+- 📱 **Global Display** - Works across your entire application, no permissions needed
+- 🎯 **Interactive Modal** - Click notifications to view full error details
+- ⏸️ **Smart Pause** - Hover over notifications to pause auto-close timer
+- 🔔 **Sound Alerts** - Optional beep for critical errors
+- 🎨 **Professional UI** - Styled like Laravel's native error page
+- 📋 **Error Details** - Shows message, file, line number, and full stack trace
+- 💾 **Lightweight** - No database required, uses simple JSON storage
+- 🔒 **Secure** - Built with Laravel auth in mind
+- ⚡ **Zero Setup** - Works out of the box, no complex configuration
+- 🚀 **Production Ready** - Efficient and reliable error handling
 
 ## 📦 Installation
 
-Install the package via Composer:
+Install via Composer:
 
 ```bash
 composer require irabbi360/laravel-log-notifier
-```
-
-Run the install command:
-
-```bash
-php artisan log-notifier:install
-```
-
-Or manually publish and run migrations:
-
-```bash
-php artisan vendor:publish --tag="log-notifier-migrations"
-php artisan migrate
 ```
 
 Publish the config file:
@@ -56,278 +42,137 @@ php artisan vendor:publish --tag="log-notifier-config"
 
 ## ⚙️ Configuration
 
-The config file `config/log-notifier.php` contains all settings:
+Configure your settings in `config/log-notifier.php`:
 
 ```php
 return [
-    // Enable/disable the notifier
     'enabled' => env('LOG_NOTIFIER_ENABLED', true),
-
-    // Store in database (true) or use cache-only (false)
-    'store_in_database' => env('LOG_NOTIFIER_STORE_IN_DB', true),
-
-    // Cache duration in minutes when store_in_database is false
-    'cache_duration' => env('LOG_NOTIFIER_CACHE_DURATION', 60),
-
-    // Path to log file or directory to scan
-    'log_path' => storage_path('logs'),
-
-    // Scan all .log files in directory (if path is a directory)
-    'scan_all_logs' => env('LOG_NOTIFIER_SCAN_ALL_LOGS', true),
-
-    // Log levels to monitor
-    'levels' => ['emergency', 'alert', 'critical', 'error'],
-
-    // Check interval (seconds) for log watcher
-    'check_interval' => 10,
-
-    // Group duplicate errors
-    'deduplicate' => true,
-
-    // Dashboard URL
-    'dashboard_route' => '/log-notifier',
-
-    // Middleware for dashboard
-    'middleware' => ['web'],
-    'auth_middleware' => ['auth'],
+    
+    'levels' => ['error', 'critical', 'alert', 'emergency'],
+    
+    'notification' => [
+        'title' => 'Laravel Error 🚨',
+        'icon' => '/vendor/log-notifier/icon.png',
+        'sound' => true, // Play sound on critical errors
+    ],
 ];
 ```
 
-## � Usage
-### Real-Time Error Detection
+## 📖 Usage
 
-The package automatically captures errors in **three ways**:
+### Automatic Error Capture
 
-1. **Real-Time Event Listener** ⚡ (Default & Automatic)
-   - Fires immediately when an error is logged
-   - No configuration needed
-   - Works in CLI and web requests
+The package automatically captures **all exceptions** in your Laravel application. No manual setup required:
 
-2. **Scheduled Log Watcher** 📅 (Optional)
-   - Add to `app/Console/Kernel.php`:
-   ```php
-   $schedule->command('log-notifier:watch')->everyMinute();
-   ```
-   - Scans log file at regular intervals
-   - Good for backup detection
+```php
+// Any unhandled exception will trigger a toast notification
+throw new Exception('Something failed!');
 
-3. **Manual Command** 🖥️
-   ```bash
-   php artisan log-notifier:watch --once
-   ```
+// Database errors
+DB::connection()->getPdo();
 
-### Optional: Disable Database Storage
+// Model validation errors
+User::findOrFail($invalidId);
 
-For a lightweight setup (perfect for development), use cache-only or file-based mode:
-
-```bash
-# In .env
-LOG_NOTIFIER_STORE_IN_DB=false        # Use cache or files instead
-LOG_NOTIFIER_CACHE_DURATION=60        # Cache expires after 60 minutes
+// Any other exception in your app...
 ```
 
-This gives you:
-- ✅ Real-time toast alerts
-- ✅ No database overhead
-- ✅ Dashboard reads from log files
-- ❌ No persistent error history
-- ❌ Limited dashboard features
+### Enable/Disable Notifications
 
-See [OPTIONAL_DATABASE_STORAGE.md](OPTIONAL_DATABASE_STORAGE.md) for full details.
+Control the package via configuration:
 
-### Dashboard Data Source
-
-The dashboard automatically switches data source based on configuration:
-
-```bash
-LOG_NOTIFIER_STORE_IN_DB=true   # Read from database (full features)
-LOG_NOTIFIER_STORE_IN_DB=false  # Read from log files (lightweight)
-```
-
-Both modes show errors in the dashboard with:
-- Error list and search
-- Statistics & charts
-- Real-time toast notifications
-
-See [DASHBOARD_DATA_SOURCES.md](DASHBOARD_DATA_SOURCES.md) for complete details.
-- ✅ No database overhead
-- ✅ Errors auto-expire after specified duration
-- ❌ No persistent error history
-
-See [OPTIONAL_DATABASE_STORAGE.md](OPTIONAL_DATABASE_STORAGE.md) for full details.
-
-### Dashboard
-
-Access the error dashboard at:
-
-```
-https://your-app.com/log-notifier
-```
-
-### Multi-File Log Monitoring
-
-The package supports monitoring multiple log files automatically:
-
-**Scan All Logs (Default)**
 ```php
 // config/log-notifier.php
-'log_path' => storage_path('logs'),      // Directory path
-'scan_all_logs' => true,                 // Scans all *.log files
+'enabled' => env('LOG_NOTIFIER_ENABLED', true),
 ```
 
-This works great with:
-- Daily rotated logs (`laravel-2026-01-31.log`)
-- Multi-channel logs
-- Custom log files in the logs directory
+Or via environment variable:
 
-**Monitor Single File**
+```env
+LOG_NOTIFIER_ENABLED=true   # Enable notifications
+LOG_NOTIFIER_ENABLED=false  # Disable notifications
+```
+
+### Filter Error Levels
+
+Control which error levels trigger notifications:
+
 ```php
-'log_path' => storage_path('logs/laravel.log'),
-'scan_all_logs' => false,  // Only monitor this specific file
+// config/log-notifier.php
+'levels' => [
+    'emergency',  // System is unusable
+    'alert',      // Action must be taken immediately
+    'critical',   // Critical condition
+    'error',      // Error condition
+    // 'warning', 'notice', 'info', 'debug' - not monitored by default
+],
 ```
 
-**Disable via Environment**
-```bash
-LOG_NOTIFIER_SCAN_ALL_LOGS=false
-```
+### Display Notifications in Your App
 
-### Enable Toast Notifications
-
-**Dashboard Only (Default)**
-
-1. Visit the dashboard: `/log-notifier`
-2. Click the bell icon (🔔) in the top-right navbar
-3. Notifications will appear in real-time as errors occur
-4. Click any notification to jump to error details
-
-No browser permissions needed! Settings are saved in localStorage.
-
-### Global Notifications Across Your App
-
-Want error alerts to appear **everywhere in your application**, not just the dashboard?
-
-Add this **single line** to your main layout:
+Add this **single line** to your main layout file (e.g., `resources/views/layouts/app.blade.php`):
 
 ```blade
 {!! LogNotifier::notification() !!}
 ```
 
-Done! Errors will now show as toast notifications across your entire app.
-
-See [GLOBAL_TOAST_SETUP.md](GLOBAL_TOAST_SETUP.md) for detailed setup instructions.
-
-### Watch for Errors
-
-Run the log watcher command:
-
-```bash
-# Watch continuously
-php artisan log-notifier:watch
-
-# Run once
-php artisan log-notifier:watch --once
-```
-
-### Schedule the Watcher
-
-Add to your `app/Console/Kernel.php`:
-
-```php
-$schedule->command('log-notifier:watch --once')->everyMinute();
-```
-
-Or in Laravel 11+ `routes/console.php`:
-
-```php
-Schedule::command('log-notifier:watch --once')->everyMinute();
-```
-
-### Clear Old Errors
-
-```bash
-# Clear based on retention policy
-php artisan log-notifier:clear
-
-# Clear all errors
-php artisan log-notifier:clear --all
-```
-
-### Using the Facade
-
-```php
-use Irabbi360\LaravelLogNotifier\Facades\LaravelLogNotifier;
-
-// Watch for new errors
-$errors = LaravelLogNotifier::watch();
-
-// Get all errors
-$errors = LaravelLogNotifier::getErrors(['level' => 'error']);
-
-// Get statistics
-$stats = LaravelLogNotifier::getStatistics(7); // Last 7 days
-
-// Resolve an error
-LaravelLogNotifier::resolve($errorId, auth()->id(), 'Fixed in commit abc123');
-```
-
-## 🎨 Dashboard Features
-
-- **Error List** - Browse all captured errors with pagination
-- **Search & Filter** - Filter by level, status, date range
-- **Error Details** - View full message, stack trace, context
-- **Bulk Actions** - Resolve or delete multiple errors
-- **Statistics** - Error counts by level and time period
-- **Toast Notifications** - Real-time in-app error alerts
+That's it! Errors will now show as toast notifications across your entire application.
 
 ## 🍞 Toast Notifications
 
-### How It Works
+Toast notifications appear automatically when exceptions occur in your application:
 
-1. Visit the dashboard
-2. Click the bell icon (🔔) in the navbar
-3. Toasts appear in the top-right corner when errors occur
-4. Click any toast to navigate to error details
-5. Critical errors play a sound notification
+### Features
 
-### Notification Features
+- ✅ **Real-time** - Instant notification delivery via Server-Sent Events (SSE)
+- 📍 **Always Visible** - Fixed position in top-right corner
+- 🎯 **Color-Coded** - Visual indication by error level (red for error, orange for warning, etc.)
+- ⏸️ **Hover to Pause** - Auto-close timer pauses when hovering over the notification
+- 📋 **Click for Details** - Open modal with full error information
+- 🔔 **Sound Alerts** - Optional beep for critical/alert level errors
+- 🎨 **Professional Styling** - Matches Laravel's native error page design
 
-- ✅ **No Permissions Required** - Works immediately
-- 🔔 **Sound Alerts** - Optional beep for critical errors
-- 💾 **Persistent Settings** - Remembers your preference
-- ⚡ **Real-time Polling** - Checks every 10 seconds
-- 🎯 **Color-Coded** - Visual indication by error level
-- 📍 **Always Visible** - Fixed position in top-right
+### User Interactions
 
-## 🔧 Available Commands
+- **Hover** → Pause the auto-close countdown timer
+- **Move Away** → Resume the countdown
+- **Click Toast** → Open modal with detailed error information
+- **Click Close Button (×)** → Dismiss notification immediately
+- **Press ESC Key** → Close the error details modal
+- **Click Outside Modal** → Close the error details modal
 
-| Command | Description |
-|---------|-------------|
-| `log-notifier:watch` | Watch logs for errors |
-| `log-notifier:clear` | Clear stored errors |
+## 🏗️ How It Works
 
-## 🏗️ Architecture
+The package uses **Server-Sent Events (SSE)** for real-time error delivery:
 
 ```
-Laravel Logs
-     ↓
-LogWatcher (Command/Job)
-     ↓
-ErrorParser (Extracts error data)
-     ↓
-ErrorRepository (Stores/deduplicates)
-     ↓
-Browser Polling
-     ↓
-Toast Notification
-     ↓
-Click → Error Dashboard
+Application Exception
+        ↓
+ExceptionTracker (JSON storage)
+        ↓
+SSE Stream (/api/stream)
+        ↓
+Browser EventSource Listener
+        ↓
+Deduplication Check
+        ↓
+Toast Notification Display
+        ↓
+User Interaction (Hover/Click)
 ```
+
+### Real-Time Delivery
+
+- Exceptions are captured instantly and streamed to the browser via SSE
+- No polling or page reloads required
+- Browser maintains persistent connection for instant notifications
+- Automatic reconnection if connection drops
 
 ## 🔒 Security
 
-- **Sensitive Data Masking** - Passwords, API keys are automatically redacted
-- **Dashboard Authentication** - Protected by your auth middleware
-- **Rate Limiting** - Prevents notification flooding
+- **Built with Laravel Auth** - Works with your existing auth system
+- **No External Services** - Everything runs on your server
+- **No Sensitive Data Logging** - Exceptions are not persisted beyond current session
 
 ## 🧪 Testing
 
@@ -335,37 +180,39 @@ Click → Error Dashboard
 composer test
 ```
 
-
 ## 🐛 Troubleshooting
 
-### Global Toast Notifications Not Showing?
+### Toast Notifications Not Appearing?
 
-If error alerts aren't appearing as toast notifications, see the [Global Notifications Troubleshooting Guide](GLOBAL_NOTIFICATIONS_TROUBLESHOOTING.md).
-
-It covers:
-- Verifying errors are being captured in the database
-- Checking if the API endpoint is working
-- Debugging JavaScript polling
-- Common issues and solutions
-
-### Quick Diagnostics
-
-Run the diagnostic script:
-
-```bash
-php global-toast-check.php
+**Check 1: Verify package is enabled**
+```env
+LOG_NOTIFIER_ENABLED=true
 ```
 
-This will verify:
-- ✅ Package configuration
-- ✅ Database table
-- ✅ Event listener registration
-- ✅ View files
-- ✅ Facade availability
+**Check 2: Ensure notification view is included in layout**
+```blade
+{!! LogNotifier::notification() !!}
+```
 
-### Dashboard Issues
+**Check 3: Check browser console for errors**
+Open DevTools (F12) and look for JavaScript errors.
 
-For general package troubleshooting, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+**Check 4: Verify error levels match configuration**
+```php
+// config/log-notifier.php
+'levels' => ['emergency', 'alert', 'critical', 'error'],
+```
+
+### No Sound on Critical Errors?
+
+Make sure sound is enabled in config:
+```php
+'notification' => [
+    'sound' => true,
+],
+```
+
+Note: Browsers may require user interaction before playing audio.
 
 ## 📝 Changelog
 
