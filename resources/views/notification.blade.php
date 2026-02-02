@@ -15,6 +15,15 @@
                     <span id="modal-level" class="log-notifier-level-badge"></span>
                 </div>
             </div>
+            <div class="log-notifier-modal-field">
+                <label class="log-notifier-modal-field-label">File</label>
+                <div class="log-notifier-modal-field-value" id="modal-file"></div>
+            </div>
+
+            {{-- <div class="log-notifier-modal-field">
+                <label class="log-notifier-modal-field-label">Line</label>
+                <div class="log-notifier-modal-field-value" id="modal-line"></div>
+            </div> --}}
 
             <div class="log-notifier-modal-field">
                 <label class="log-notifier-modal-field-label">Message</label>
@@ -24,16 +33,6 @@
             <div class="log-notifier-modal-field">
                 <label class="log-notifier-modal-field-label">Stack Trace</label>
                 <div class="log-notifier-modal-field-value" id="modal-trace"></div>
-            </div>
-
-            <div class="log-notifier-modal-field">
-                <label class="log-notifier-modal-field-label">File</label>
-                <div class="log-notifier-modal-field-value" id="modal-file"></div>
-            </div>
-
-            <div class="log-notifier-modal-field">
-                <label class="log-notifier-modal-field-label">Line</label>
-                <div class="log-notifier-modal-field-value" id="modal-line"></div>
             </div>
 
             <div class="log-notifier-modal-field">
@@ -277,11 +276,11 @@
 
     .log-notifier-modal-body {
         color: #c9d1d9;
-        padding: 30px;
+        padding: 15px;
     }
 
     .log-notifier-modal-field {
-        margin-bottom: 30px;
+        margin-bottom: 15px 20px;
     }
 
     .log-notifier-modal-field:last-child {
@@ -702,7 +701,7 @@
 
             // Display file and line
             document.getElementById('modal-file').textContent = error.file || 'N/A';
-            document.getElementById('modal-line').textContent = error.line || 'N/A';
+            // document.getElementById('modal-line').textContent = error.line || 'N/A';
             document.getElementById('modal-time').textContent = error.occurred_at || 'N/A';
 
             // Format trace with line numbers
